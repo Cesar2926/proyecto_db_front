@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { FormDataRegistro } from '../../types/tipos';
 import solicitanteService from '../../services/solicitanteService';
+import catalogoService from '../../services/catalogoService';
+import type { Estado, Municipio, Parroquia, EstadoCivil } from '../../services/catalogoService';
+import CustomSelect from '../common/CustomSelect';
+import CustomDatePicker from '../common/CustomDatePicker';
 
 const initialFormData: FormDataRegistro = {
     nombre: '',
@@ -33,6 +37,72 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
         ...initialFormData,
         ...initialData,
     });
+
+    // Estados para catálogos de ubicación
+    const [estados, setEstados] = useState<Estado[]>([]);
+    const [municipios, setMunicipios] = useState<Municipio[]>([]);
+    const [parroquias, setParroquias] = useState<Parroquia[]>([]);
+    const [estadosCiviles, setEstadosCiviles] = useState<EstadoCivil[]>([]);
+
+    const [selectedEstado, setSelectedEstado] = useState<number>(0);
+    const [selectedMunicipio, setSelectedMunicipio] = useState<number>(0);
+    const [selectedParroquia, setSelectedParroquia] = useState<number>(0);
+
+    // Cargar Estados al montar
+    // Cargar Catálogos al montar (Preloading)
+    useEffect(() => {
+        const loadCatalogos = async () => {
+            try {
+                const [
+                    estadosData,
+                    municipiosData,
+                    parroquiasData,
+                    estadosCivilesData
+                ] = await Promise.all([
+                    catalogoService.getEstados(),
+                    catalogoService.getAllMunicipios(),
+                    catalogoService.getAllParroquias(),
+                    catalogoService.getEstadosCiviles()
+                ]);
+
+                setEstados(estadosData);
+                setMunicipios(municipiosData);
+                setParroquias(parroquiasData);
+                setEstadosCiviles(estadosCivilesData);
+            } catch (error) {
+                console.error("Error al cargar catálogos", error);
+            }
+        };
+
+        loadCatalogos();
+    }, []);
+
+    const handleEstadoChange = (idEstado: number) => {
+        setSelectedEstado(idEstado);
+        setSelectedMunicipio(0);
+        setSelectedParroquia(0);
+        // Ya no necesitamos limpiar estados de municipios/parroquias porque filtramos en render
+    };
+
+    const handleMunicipioChange = (idMunicipio: number) => {
+        setSelectedMunicipio(idMunicipio);
+        setSelectedParroquia(0);
+    };
+
+    // Filtros derivados
+    const filteredMunicipios = municipios.filter(m => m.idEstado === selectedEstado);
+    const filteredParroquias = parroquias.filter(p => p.idMunicipio === selectedMunicipio);
+
+    const handleParroquiaChange = (idParroquia: number) => {
+        setSelectedParroquia(idParroquia);
+        const parroquia = parroquias.find(p => p.idParroquia === idParroquia);
+        if (parroquia) {
+            setFormData(prev => ({
+                ...prev,
+                parroquiaResidencia: parroquia.nombreParroquia
+            }));
+        }
+    };
 
     // Si initialData cambia (ej: se prellena cedula), actualizar form
     useEffect(() => {
@@ -150,47 +220,35 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
 
                     {/* Sexo */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Sexo</label>
-                        <select
-                            name="sexo"
+                        <CustomSelect
+                            label="Sexo"
                             value={formData.sexo}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            options={[
+                                { value: 'masculino', label: 'Masculino' },
+                                { value: 'femenino', label: 'Femenino' }
+                            ]}
+                            onChange={(val) => setFormData(prev => ({ ...prev, sexo: String(val) }))}
                             required
-                        >
-                            <option value="">Seleccionar</option>
-                            <option value="masculino">Masculino</option>
-                            <option value="femenino">Femenino</option>
-                        </select>
+                        />
                     </div>
 
                     {/* Estado civil */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Estado civil</label>
-                        <select
-                            name="estadoCivil"
+                        <CustomSelect
+                            label="Estado civil"
                             value={formData.estadoCivil}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            options={estadosCiviles.map(ec => ({ value: ec.nombreEstadoCivil, label: ec.nombreEstadoCivil }))}
+                            onChange={(val) => setFormData(prev => ({ ...prev, estadoCivil: String(val) }))}
                             required
-                        >
-                            <option value="">Seleccionar</option>
-                            <option value="soltero">Soltero(a)</option>
-                            <option value="casado">Casado(a)</option>
-                            <option value="divorciado">Divorciado(a)</option>
-                            <option value="viudo">Viudo(a)</option>
-                        </select>
+                        />
                     </div>
 
                     {/* Fecha nacimiento */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Fecha nacimiento</label>
-                        <input
-                            type="date"
-                            name="fechaNacimiento"
+                        <CustomDatePicker
+                            label="Fecha nacimiento"
                             value={formData.fechaNacimiento}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            onChange={(val) => setFormData(prev => ({ ...prev, fechaNacimiento: val }))}
                             required
                         />
                     </div>
@@ -224,62 +282,19 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
 
                     {/* Nacionalidad */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Nacionalidad</label>
-                        <select
-                            name="nacionalidad"
+                        <CustomSelect
+                            label="Nacionalidad"
                             value={formData.nacionalidad}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            options={[
+                                { value: 'venezolana', label: 'Venezolana' },
+                                { value: 'extranjera', label: 'Extranjera' }
+                            ]}
+                            onChange={(val) => setFormData(prev => ({ ...prev, nacionalidad: String(val) }))}
                             required
-                        >
-                            <option value="">Seleccionar</option>
-                            <option value="venezolana">Venezolana</option>
-                            <option value="extranjera">Extranjera</option>
-                        </select>
+                        />
                     </div>
 
-                    {/* Trabaja */}
-                    <div>
-                        <label className="block text-sm font-semibold mb-2">Trabaja</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="trabaja"
-                                    checked={formData.trabaja === true}
-                                    onChange={() => handleRadioChange('trabaja', true)}
-                                    className="w-5 h-5 text-red-900 focus:ring-red-900"
-                                />
-                                <span>Sí</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="trabaja"
-                                    checked={formData.trabaja === false}
-                                    onChange={() => handleRadioChange('trabaja', false)}
-                                    className="w-5 h-5 text-red-900 focus:ring-red-900"
-                                />
-                                <span>No</span>
-                            </label>
-                        </div>
-                    </div>
 
-                    {/* Condición trabajo */}
-                    <div>
-                        <label className="block text-sm font-semibold mb-2">Condición trabajo</label>
-                        <select
-                            name="condicionTrabajo"
-                            value={formData.condicionTrabajo}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
-                            disabled={!formData.trabaja}
-                        >
-                            <option value="">Seleccionar</option>
-                            <option value="formal">Formal</option>
-                            <option value="informal">Informal</option>
-                        </select>
-                    </div>
                 </div>
             </section>
 
@@ -331,50 +346,43 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                 <section>
                     <h2 className="text-2xl font-bold mb-6">Datos de residencia</h2>
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-semibold mb-2">
-                                Comunidad de residencia
-                            </label>
-                            <input
-                                type="text"
-                                name="comunidadResidencia"
-                                value={formData.comunidadResidencia}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
-                                required
-                            />
+
+                        {/* Selectores de Ubicación en Cascada */}
+                        <div className="grid grid-cols-1 gap-4">
+                            <div>
+                                <CustomSelect
+                                    label="Estado"
+                                    value={selectedEstado || ''}
+                                    options={estados.map(e => ({ value: e.idEstado, label: e.nombreEstado }))}
+                                    onChange={(val) => handleEstadoChange(Number(val))}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <CustomSelect
+                                    label="Municipio"
+                                    value={selectedMunicipio || ''}
+                                    options={filteredMunicipios.map(m => ({ value: m.idMunicipio, label: m.nombreMunicipio }))}
+                                    onChange={(val) => handleMunicipioChange(Number(val))}
+                                    disabled={!selectedEstado}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <CustomSelect
+                                    label="Parroquia"
+                                    value={selectedParroquia || ''}
+                                    options={filteredParroquias.map(p => ({ value: p.idParroquia, label: p.nombreParroquia }))}
+                                    onChange={(val) => handleParroquiaChange(Number(val))}
+                                    disabled={!selectedMunicipio}
+                                    required
+                                />
+                                <input type="hidden" name="parroquiaResidencia" value={formData.parroquiaResidencia} />
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold mb-2">
-                                Parroquia de residencia
-                            </label>
-                            <input
-                                type="text"
-                                name="parroquiaResidencia"
-                                value={formData.parroquiaResidencia}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold mb-2">Tipo de vivienda</label>
-                            <select
-                                name="tipoVivienda"
-                                value={formData.tipoVivienda}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
-                                required
-                            >
-                                <option value="">Seleccionar</option>
-                                <option value="propia">Propia</option>
-                                <option value="alquilada">Alquilada</option>
-                                <option value="prestada">Prestada</option>
-                                <option value="otra">Otra</option>
-                            </select>
-                        </div>
                     </div>
                 </section>
             </div>

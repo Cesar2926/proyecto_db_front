@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import Modal from '../components/common/Modal';
+import Toast from '../components/common/Toast';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import solicitanteService from '../services/solicitanteService';
 
@@ -27,6 +28,11 @@ function RegistroCaso() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Toast State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+
   // Usar el hook personalizado para manejar localStorage (Case data)
   const [formData] = useLocalStorage<any>(
     'formDataRegistroCasos',
@@ -45,13 +51,17 @@ function RegistroCaso() {
     setIsSidebarOpen(false);
   };
 
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+  };
+
   const handleSearchSolicitante = async () => {
     if (!cedulaSearch.trim()) return;
 
     setIsSearching(true);
     setErrorMessage('');
-    // No reseteamos solicitante aquí para no perder la referencia si ya existía,
-    // pero lo actualizaremos con el resultado.
 
     try {
       console.log(`Buscando solicitante con cédula: ${cedulaSearch}`);
@@ -59,17 +69,22 @@ function RegistroCaso() {
       if (data) {
         setSolicitante(data);
         setErrorMessage('');
-        // Si existe, abrimos el modal para mostrar los datos
-        setIsModalOpen(true);
+        // ÉXITO: Solicitante encontrado, mostramos los datos en el div (automático por state)
+        // NO abrimos el modal
+        showNotification('Solicitante encontrado exitosamente', 'success');
       }
     } catch (error: any) {
       console.error('Error buscando solicitante:', error);
       if (error.response && error.response.status === 404) {
-        // Not found - Open Modal to register
-        setSolicitante(null); // Aseguramos que no haya datos previos
+        // NO ENCONTRADO:
+        // 1. Mostrar Toast "Solicitante no encontrado"
+        showNotification('Solicitante no encontrado', 'error');
+        // 2. Abrir Modal de registro
+        setSolicitante(null);
         setIsModalOpen(true);
       } else {
         setErrorMessage('Error al buscar solicitante. Intente nuevamente.');
+        showNotification('Error de conexión o servidor', 'error');
       }
     } finally {
       setIsSearching(false);
@@ -83,6 +98,7 @@ function RegistroCaso() {
     if (newSolicitante.cedula) {
       setCedulaSearch(newSolicitante.cedula);
     }
+    showNotification('Solicitante registrado y seleccionado', 'success');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -134,7 +150,7 @@ function RegistroCaso() {
             )}
 
             {solicitante && (
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in">
                 <h3 className="font-semibold text-green-800 mb-2">Solicitante Verificado</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <p><span className="font-medium">Nombre:</span> {solicitante.nombre}</p>
@@ -184,6 +200,13 @@ function RegistroCaso() {
           onCancel={() => setIsModalOpen(false)}
         />
       </Modal>
+
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 }
