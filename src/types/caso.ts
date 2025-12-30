@@ -1,0 +1,70 @@
+// --- Beneficiario ---
+export interface BeneficiarioCreateRequest {
+    cedula: string;
+    tipoBeneficiario: string;
+    parentesco: string;
+}
+
+export interface BeneficiarioResponse {
+    cedula: string;
+    numCaso: string;
+    tipoBeneficiario: string;
+    parentesco: string;
+}
+
+// --- Caso ---
+export interface CasoCreateRequest {
+    sintesis: string;
+    tramite: string; // "ASESORÍA", "REDACCIÓN DE DOCUMENTOS", etc.
+    cantBeneficiarios: number;
+    idTribunal?: number; // Opcional si no aplica
+    termino?: string;
+    idCentro: number;
+    cedula: string; // Cédula del solicitante
+    username: string; // Username del abogado/estudiante
+    comAmbLegal: number;
+    beneficiarios: BeneficiarioCreateRequest[];
+}
+
+export interface CasoResponse {
+    numCaso: string;
+    fechaRecepcion: string;
+    sintesis: string;
+    tramite: string;
+    cantBeneficiarios: number;
+    estatus: string;
+    codCasoTribunal?: string;
+    fechaResCasoTri?: string;
+    fechaCreaCasoTri?: string;
+    idTribunal?: number;
+    nombreTribunal?: string;
+    termino?: string;
+    idCentro: number;
+    cedula: string;
+    username: string;
+    comAmbLegal: number;
+}
+
+export interface CasoDetalleResponse extends CasoResponse {
+    // Si CasoDetalleResponse tuviera campos extra, irían aquí. 
+}
+
+// Interfaz simplificada para listas
+export interface CasoListResponse {
+    numCaso: string;
+    fechaRecepcion: string;
+    estatus: string;
+    cedula: string;
+    nombreSolicitante: string; // Si el backend lo devuelve
+    materia?: string; // Si aplica
+}
+
+// Mantenemos la interfaz Caso existente si se usa en componentes visuales
+export interface Caso extends CasoResponse {
+    // Campos adicionales de UI si los hay
+    usuarios_asignados?: string[];
+}
+
+export interface CaseCardProps extends Caso {
+    onClick?: () => void;
+}

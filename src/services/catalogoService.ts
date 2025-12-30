@@ -1,21 +1,6 @@
 import api from './api';
 
-export interface Estado {
-    idEstado: number;
-    nombreEstado: string;
-}
-
-export interface Municipio {
-    idMunicipio: number;
-    nombreMunicipio: string;
-    idEstado: number;
-}
-
-export interface Parroquia {
-    idParroquia: number;
-    nombreParroquia: string;
-    idMunicipio: number;
-}
+import type { Estado, Municipio, Parroquia, AmbitoLegal, Centro, EstadoCivil } from '../types';
 
 const catalogoService = {
     getEstados: async () => {
@@ -51,11 +36,18 @@ const catalogoService = {
         const response = await api.get<EstadoCivil[]>('/catalogos/estados-civiles');
         return response.data;
     },
+
+    getAmbitosLegales: async () => {
+        const response = await api.get<AmbitoLegal[]>('/catalogos/ambitos-legales');
+        return response.data;
+    },
+
+    getCentros: async () => {
+        const response = await api.get<Centro[]>('/catalogos/centros');
+        return response.data;
+    },
 };
 
-export interface EstadoCivil {
-    idEstadoCivil: number;
-    nombreEstadoCivil: string;
-}
+
 
 export default catalogoService;

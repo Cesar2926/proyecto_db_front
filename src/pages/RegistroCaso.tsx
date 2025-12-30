@@ -1,22 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import Modal from '../components/common/Modal';
 import Toast from '../components/common/Toast';
+import CustomSelect from '../components/common/CustomSelect';
+import SmartAmbitoSelector from '../components/forms/SmartAmbitoSelector';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import solicitanteService from '../services/solicitanteService';
+import catalogoService, { type AmbitoLegal, type Centro } from '../services/catalogoService';
 
-// ⏰ CONFIGURACIÓN DE EXPIRACIÓN: Cambia este valor para ajustar cuánto tiempo se guardan los datos
-// Valores comunes:
-// - 1 hora: 1 * 60 * 60 * 1000
-// - 1 día: 1 * 24 * 60 * 60 * 1000
-// - 3 días: 3 * 24 * 60 * 60 * 1000
-// - 7 días: 7 * 24 * 60 * 60 * 1000
-// - 30 días: 30 * 24 * 60 * 60 * 1000
-// - Sin expiración: Infinity (no recomendado)
-const EXPIRATION_TIME_MS = 7 * 24 * 60 * 60 * 1000; // 7 días en milisegundos
+// ⏰ CONFIGURACIÓN DE EXPIRACIÓN
+const EXPIRATION_TIME_MS = 7 * 24 * 60 * 60 * 1000;
 
 function RegistroCaso() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -28,20 +24,56 @@ function RegistroCaso() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Toast State
+  // Toast
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
-  // Usar el hook personalizado para manejar localStorage (Case data)
-  const [formData] = useLocalStorage<any>(
+  // FormData: matches CasoCreateRequest roughly
+  // comAmbLegal: ID of the selected Ambito/Leaf
+  // tramite: 'ASESORÍA', 'CONCILIACIÓN Y MEDIACIÓN', 'REDACCIÓN DE DOCUMENTOS'
+  const [formData, setFormData] = useLocalStorage<any>(
     'formDataRegistroCasos',
-    {},
+    { comAmbLegal: 0, tramite: '', sintesis: '', idCentro: '' },
     {
       expirationTimeMs: EXPIRATION_TIME_MS,
-      autoSave: true, // Guardado automático activado
+      autoSave: true,
     }
   );
+
+  // Catalogos
+  const [arbolAmbitos, setArbolAmbitos] = useState<AmbitoLegal[]>([]);
+  const [centros, setCentros] = useState<Centro[]>([]);
+
+  // Opciones estáticas para 'Tipo de Trámite'
+  const TIPO_TRAMITE_OPTIONS = [
+    { value: 'ASESORÍA', label: 'Asesoría' },
+    { value: 'CONCILIACIÓN Y MEDIACIÓN', label: 'Conciliación y Mediación' },
+    { value: 'REDACCIÓN DE DOCUMENTOS', label: 'Redacción de Documentos' },
+  ];
+
+  // Cargar Ámbitos Legales y Centros al montar
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [ambitos, centrosData] = await Promise.all([
+          catalogoService.getAmbitosLegales(),
+          catalogoService.getCentros()
+        ]);
+        setArbolAmbitos(ambitos);
+        setCentros(centrosData);
+      } catch (error) {
+        console.error("Error cargando catálogos", error);
+        showNotification("Error cargando datos del sistema", "error");
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleAmbitoSelection = (ambitoId: number, _materiaId: number) => {
+    // We store comAmbLegal = ambitoId. _materiaId is ignored.
+    setFormData((prev: any) => ({ ...prev, comAmbLegal: ambitoId }));
+  };
 
   const handleMenuClick = () => {
     setIsSidebarOpen(true);
@@ -69,17 +101,12 @@ function RegistroCaso() {
       if (data) {
         setSolicitante(data);
         setErrorMessage('');
-        // ÉXITO: Solicitante encontrado, mostramos los datos en el div (automático por state)
-        // NO abrimos el modal
         showNotification('Solicitante encontrado exitosamente', 'success');
       }
     } catch (error: any) {
       console.error('Error buscando solicitante:', error);
       if (error.response && error.response.status === 404) {
-        // NO ENCONTRADO:
-        // 1. Mostrar Toast "Solicitante no encontrado"
         showNotification('Solicitante no encontrado', 'error');
-        // 2. Abrir Modal de registro
         setSolicitante(null);
         setIsModalOpen(true);
       } else {
@@ -94,7 +121,6 @@ function RegistroCaso() {
   const handleSearchResult = (newSolicitante: any) => {
     setSolicitante(newSolicitante);
     setIsModalOpen(false);
-    // Optionally update the search input to match
     if (newSolicitante.cedula) {
       setCedulaSearch(newSolicitante.cedula);
     }
@@ -107,8 +133,23 @@ function RegistroCaso() {
       alert("Debe seleccionar un solicitante primero.");
       return;
     }
-    console.log('Registro de caso enviado', { ...formData, solicitanteId: solicitante.cedula });
-    // Aquí irá la lógica para enviar los datos a la API incluyendo el ID del solicitante
+
+    // Prepare payload for backend (CasoCreateRequest)
+    // We need to map our formData to the backend expected structure
+    const payload = {
+      cedula: solicitante.cedula,
+      sintesis: formData.sintesis,
+      tramite: formData.tramite,
+      comAmbLegal: formData.comAmbLegal,
+      idCentro: formData.idCentro,
+      // Default values or to be filled later? 
+      // For now, these might be handled by backend defaults or required fields we don't present here yet.
+      // Assuming this form is Step 1 or partial implementation.
+      // But let's log what we have.
+    };
+
+    console.log('Enviando Caso:', payload);
+    showNotification('Caso registrado (Simulación)', 'success');
   };
 
   return (
@@ -162,15 +203,68 @@ function RegistroCaso() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className={`bg-white rounded-lg shadow-lg p-6 md:p-8 ${!solicitante ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+          <form onSubmit={handleSubmit} className={`bg-white rounded-lg shadow-lg p-6 md:p-8 ${!solicitante ? 'opacity-50 pointer-events-none grayscale' : ''} transition-all duration-300`}>
             <h2 className="text-3xl font-bold mb-8 text-center">Datos del Caso</h2>
 
-            {/* Placeholder para campos del formulario */}
-            <div className="text-center text-gray-600 py-12 border-2 border-dashed border-gray-300 rounded-lg">
-              <p className="text-xl mb-4">📋 Campos del Caso</p>
-              <p className="text-sm mb-2">
-                (Este formulario se habilita una vez verificado el solicitante)
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Columna Izquierda */}
+              <div className="space-y-6">
+                {/* Sintesis */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">Síntesis del Caso</label>
+                  <textarea
+                    name="sintesis"
+                    value={formData.sintesis || ''}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, sintesis: e.target.value }))}
+                    placeholder="Describa brevemente los hechos del caso..."
+                    rows={6}
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent resize-none transition-shadow"
+                    required
+                    disabled={!solicitante}
+                  />
+                </div>
+              </div>
+
+              {/* Columna Derecha */}
+              <div className="space-y-6">
+
+                {/* Ámbito Legal (Smart Selector) */}
+                <div>
+                  <SmartAmbitoSelector
+                    data={arbolAmbitos}
+                    value={formData.comAmbLegal || 0}
+                    onChange={handleAmbitoSelection}
+                    disabled={!solicitante}
+                  />
+                </div>
+
+                {/* Tipo de Trámite (Static Select) */}
+                <div>
+                  <CustomSelect
+                    label="Tipo de Trámite"
+                    value={formData.tramite || ''}
+                    options={TIPO_TRAMITE_OPTIONS}
+                    onChange={(val) => setFormData((prev: any) => ({ ...prev, tramite: String(val) }))}
+                    required
+                    disabled={!solicitante}
+                    placeholder="Seleccione el tipo de trámite..."
+                  />
+                </div>
+
+                {/* Centro */}
+                <div>
+                  <CustomSelect
+                    label="Centro / Clínica Jurídica"
+                    value={formData.idCentro || ''}
+                    options={centros.map(c => ({ value: c.idCentro, label: c.nombreCentro }))}
+                    onChange={(val) => setFormData((prev: any) => ({ ...prev, idCentro: Number(val) }))}
+                    required
+                    disabled={!solicitante}
+                    placeholder="Seleccione el centro..."
+                  />
+                </div>
+
+              </div>
             </div>
 
             {/* Botón de enviar */}
@@ -178,7 +272,7 @@ function RegistroCaso() {
               <button
                 type="submit"
                 disabled={!solicitante}
-                className="px-8 py-3 bg-red-900 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200 disabled:bg-gray-400"
+                className="px-8 py-3 bg-red-900 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200 disabled:bg-gray-400 shadow-md hover:shadow-lg"
               >
                 Registrar Caso
               </button>
@@ -187,7 +281,6 @@ function RegistroCaso() {
         </div>
       </main>
 
-      {/* Modal para registro de solicitante */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

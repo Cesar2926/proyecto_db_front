@@ -1,31 +1,26 @@
 import { useState, useEffect } from 'react';
-import type { FormDataRegistro } from '../../types/tipos';
+import type { SolicitanteRequest, Estado, Municipio, Parroquia, EstadoCivil } from '../../types'; // Importando todo desde el index
 import solicitanteService from '../../services/solicitanteService';
 import catalogoService from '../../services/catalogoService';
-import type { Estado, Municipio, Parroquia, EstadoCivil } from '../../services/catalogoService';
 import CustomSelect from '../common/CustomSelect';
 import CustomDatePicker from '../common/CustomDatePicker';
 
-const initialFormData: FormDataRegistro = {
+const initialFormData: SolicitanteRequest = {
     nombre: '',
     cedula: '',
     sexo: '',
-    estadoCivil: '',
+    idEstadoCivil: 0,
     fechaNacimiento: '',
     concubinato: false,
     nacionalidad: '',
-    trabaja: false,
-    condicionTrabajo: '',
     telfCasa: '',
     telfCelular: '',
     email: '',
-    comunidadResidencia: '',
-    parroquiaResidencia: '',
-    tipoVivienda: '',
+    idParroquia: 0,
 };
 
 interface SolicitanteFormProps {
-    initialData?: Partial<FormDataRegistro>;
+    initialData?: Partial<SolicitanteRequest>;
     onSuccess?: (data: any) => void;
     onCancel?: () => void;
     isModal?: boolean;
@@ -33,7 +28,7 @@ interface SolicitanteFormProps {
 }
 
 export default function SolicitanteForm({ initialData, onSuccess, onCancel, isModal = false, embedded = false }: SolicitanteFormProps) {
-    const [formData, setFormData] = useState<FormDataRegistro>({
+    const [formData, setFormData] = useState<SolicitanteRequest>({
         ...initialFormData,
         ...initialData,
     });
@@ -48,7 +43,6 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
     const [selectedMunicipio, setSelectedMunicipio] = useState<number>(0);
     const [selectedParroquia, setSelectedParroquia] = useState<number>(0);
 
-    // Cargar Estados al montar
     // Cargar Catálogos al montar (Preloading)
     useEffect(() => {
         const loadCatalogos = async () => {
@@ -95,13 +89,10 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
 
     const handleParroquiaChange = (idParroquia: number) => {
         setSelectedParroquia(idParroquia);
-        const parroquia = parroquias.find(p => p.idParroquia === idParroquia);
-        if (parroquia) {
-            setFormData(prev => ({
-                ...prev,
-                parroquiaResidencia: parroquia.nombreParroquia
-            }));
-        }
+        setFormData(prev => ({
+            ...prev,
+            idParroquia: idParroquia
+        }));
     };
 
     // Si initialData cambia (ej: se prellena cedula), actualizar form
@@ -130,7 +121,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
         const { name, value } = e.target;
 
         // Campos que solo deben aceptar letras (sin números)
-        const textOnlyFields = ['nombre', 'comunidadResidencia', 'parroquiaResidencia'];
+        const textOnlyFields = ['nombre'];
 
         // Campos numéricos (enteros positivos sin decimales)
         const numericFields: string[] = [];
@@ -159,7 +150,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
         }));
     };
 
-    const handleRadioChange = (name: keyof FormDataRegistro, value: boolean) => {
+    const handleRadioChange = (name: keyof SolicitanteRequest, value: boolean) => {
         setFormData((prev) => ({
             ...prev,
             [name]: value,
@@ -213,7 +204,8 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             maxLength={8}
                             pattern="\d+"
                             title="Ingrese solo números"
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            disabled={isModal}
+                            className={`w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent ${isModal ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                             required
                         />
                     </div>
@@ -224,8 +216,8 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             label="Sexo"
                             value={formData.sexo}
                             options={[
-                                { value: 'masculino', label: 'Masculino' },
-                                { value: 'femenino', label: 'Femenino' }
+                                { value: 'Masculino', label: 'Masculino' },
+                                { value: 'Femenino', label: 'Femenino' }
                             ]}
                             onChange={(val) => setFormData(prev => ({ ...prev, sexo: String(val) }))}
                             required
@@ -236,9 +228,9 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                     <div>
                         <CustomSelect
                             label="Estado civil"
-                            value={formData.estadoCivil}
-                            options={estadosCiviles.map(ec => ({ value: ec.nombreEstadoCivil, label: ec.nombreEstadoCivil }))}
-                            onChange={(val) => setFormData(prev => ({ ...prev, estadoCivil: String(val) }))}
+                            value={formData.idEstadoCivil}
+                            options={estadosCiviles.map(ec => ({ value: ec.idEstadoCivil, label: ec.nombreEstadoCivil }))}
+                            onChange={(val) => setFormData(prev => ({ ...prev, idEstadoCivil: Number(val) }))}
                             required
                         />
                     </div>
@@ -286,13 +278,14 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             label="Nacionalidad"
                             value={formData.nacionalidad}
                             options={[
-                                { value: 'venezolana', label: 'Venezolana' },
-                                { value: 'extranjera', label: 'Extranjera' }
+                                { value: 'Venezolano', label: 'Venezolano' },
+                                { value: 'Extranjero', label: 'Extranjero' }
                             ]}
                             onChange={(val) => setFormData(prev => ({ ...prev, nacionalidad: String(val) }))}
                             required
                         />
                     </div>
+
 
 
                 </div>
@@ -379,15 +372,12 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                                     disabled={!selectedMunicipio}
                                     required
                                 />
-                                <input type="hidden" name="parroquiaResidencia" value={formData.parroquiaResidencia} />
                             </div>
                         </div>
 
                     </div>
                 </section>
             </div>
-
-
 
             {/* Botón de enviar */}
             <div className="flex justify-end gap-4">
