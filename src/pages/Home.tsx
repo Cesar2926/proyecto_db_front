@@ -12,6 +12,7 @@ import {
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Card from '../components/Card';
+import CasosCard from '../components/CasosCard';
 
 function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -31,17 +32,18 @@ function Home() {
       icon: (
         <FontAwesomeIcon
           icon={faBook}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem]"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
       path: '/casos',
+      isSpecial: true,
     },
     {
       title: 'Citas Pendientes',
       icon: (
         <FontAwesomeIcon
           icon={faComment}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem]"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
       path: '/citas-pendientes',
@@ -51,7 +53,7 @@ function Home() {
       icon: (
         <FontAwesomeIcon
           icon={faClipboard}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem]"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
       path: '/indicadores-reportes',
@@ -61,7 +63,7 @@ function Home() {
       icon: (
         <FontAwesomeIcon
           icon={faPenToSquare}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem]"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
       path: '/registro',
@@ -71,7 +73,7 @@ function Home() {
       icon: (
         <FontAwesomeIcon
           icon={faPaperPlane}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem]"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
       path: '/tareas-pendientes',
@@ -81,7 +83,7 @@ function Home() {
       icon: (
         <FontAwesomeIcon
           icon={faFolderOpen}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem]"
+          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
       path: '/expedientes',
@@ -97,12 +99,21 @@ function Home() {
         {/* Grid de tarjetas - Ocupa todo el espacio disponible */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full w-full px-2">
           {menuOptions.map((option, index) => (
-            <Card
-              key={index}
-              title={option.title}
-              icon={option.icon}
-              onClick={() => navigate(option.path)}
-            />
+            option.isSpecial ? (
+              <CasosCard
+                key={index}
+                title="CASOS"
+                icon={option.icon}
+                onClick={() => navigate(option.path)}
+              />
+            ) : (
+              <Card
+                key={index}
+                title={option.title}
+                icon={option.icon}
+                onClick={() => navigate(option.path)}
+              />
+            )
           ))}
         </div>
       </main>

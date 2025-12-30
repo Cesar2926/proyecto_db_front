@@ -2,57 +2,44 @@ import LogoDiagonal from '../assets/LogoDiagonal.png';
 import LogoDerecho from '../assets/LogoDerecho.png';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-//import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
 
-  // Verificar si ya hay sesión activa al cargar el componente
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Si ya hay sesión, redirigir a home
+    if (isAuthenticated) {
       navigate('/home', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (!username || !password) {
-      alert('Por favor ingresa usuario y contraseña');
+      setError('Por favor ingresa usuario y contraseña');
       return;
     }
+
     setLoading(true);
     try {
-      // Descomentar cuando tengas el endpoint real
-      /*const response = await api.post('/login', { 
-            username, 
-            password 
-        });
-      
-      // Guardar token y userId del usuario logueado
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('userId', response.data.userId);
-      */
-
-      // TEMPORAL: Guardar userId de ejemplo (eliminar cuando uses la API real)
-      localStorage.setItem('userId', 'USER_123');
-      localStorage.setItem('token', 'token_ejemplo');
-
-      // Usar replace: true para que el login no quede en el historial
-      // Esto evita que el usuario pueda regresar al login con el botón "atrás"
-      navigate('/home', { replace: true });
-    } catch (error: any) {
-      console.error('Error en login:', error);
-      const mensajeError = error.response?.data?.message || 'Error al iniciar sesión';
-      alert(mensajeError);
+      await login({ username, password });
+      // Navigation handled by useEffect
+    } catch (err: any) {
+      console.error('Error en login:', err);
+      const mensajeError = err.response?.data?.message || 'Usuario o contraseña incorrectos';
+      setError(mensajeError);
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       {/* Imagen de fondo */}
@@ -74,32 +61,39 @@ function Login() {
         {/* Título responsive */}
         <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Clínica Jurídica</h1>
 
-        {/* Input Usuario responsive */}
-        <input
-          type="text"
-          placeholder="Usuario"
-          className="w-11/12 md:w-2/3 lg:w-1/2 xl:w-1/3 max-w-md h-11 md:h-12 lg:h-14 rounded-full border-2 bg-red-900 text-white px-4 md:px-6 placeholder-white text-sm md:text-xl focus:outline-none focus:ring-0 focus:border-red-700"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+        {/* Error message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
 
-        {/* Input Contraseña responsive */}
-        <input
-          type="password"
-          placeholder="Contraseña"
-          className="w-11/12 md:w-2/3 lg:w-1/2 xl:w-1/3 max-w-md h-11 md:h-12 lg:h- rounded-full border-2 bg-red-900 text-white px-4 md:px-6 placeholder-white text-sm md:text-xl focus:outline-none focus:ring-0 focus:border-red-700"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        {/* Form responsive */}
+        <form onSubmit={handleLogin} className="flex flex-col items-center gap-3 w-full">
+          <input
+            type="text"
+            placeholder="Usuario"
+            className="w-11/12 md:w-2/3 lg:w-1/2 xl:w-1/3 max-w-md h-11 md:h-12 lg:h-14 rounded-full border-2 bg-red-900 text-white px-4 md:px-6 placeholder-white text-sm md:text-xl focus:outline-none focus:ring-0 focus:border-red-700"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
 
-        {/* Botón responsive */}
-        <button
-          className="w-40 md:w-48 lg:w-56 h-10 md:h-11 lg:h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white text-sm md:text-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={handleLogin}
-          disabled={loading}
-        >
-          {loading ? 'Cargando...' : 'Iniciar sesión'}
-        </button>
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="w-11/12 md:w-2/3 lg:w-1/2 xl:w-1/3 max-w-md h-11 md:h-12 lg:h-14 rounded-full border-2 bg-red-900 text-white px-4 md:px-6 placeholder-white text-sm md:text-xl focus:outline-none focus:ring-0 focus:border-red-700"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            type="submit"
+            className="w-40 md:w-48 lg:w-56 h-10 md:h-11 lg:h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white text-sm md:text-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
+          >
+            {loading ? 'Cargando...' : 'Iniciar sesión'}
+          </button>
+        </form>
       </div>
     </div>
   );

@@ -16,8 +16,9 @@ export interface CaseCardProps extends Caso {
 // Interfaces para el formulario de registro de beneficiarios
 export interface FormDataRegistro {
   // Datos personales
-  nombresApellidos: string;
-  ci: string;
+  // Datos personales
+  nombre: string;
+  cedula: string;
   sexo: string;
   estadoCivil: string;
   fechaNacimiento: string;
@@ -26,16 +27,12 @@ export interface FormDataRegistro {
   trabaja: boolean;
   condicionTrabajo: string;
   // Datos de contacto
-  telefonoLocal: string;
-  telefonoPersonal: string;
-  correoElectronico: string;
+  telfCasa: string;
+  telfCelular: string;
+  email: string;
   // Datos de residencia
   comunidadResidencia: string;
   parroquiaResidencia: string;
   tipoVivienda: string;
-  // Familia y hogar
-  personasVivienda: string;
-  miembrosTrabajan: string;
-  ninosEntre7y12: string;
-  jefeHogar: boolean;
+
 }

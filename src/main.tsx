@@ -9,17 +9,25 @@ import CasoDetalle from './pages/CasoDetalle.tsx';
 import Registro from './pages/Registro.tsx';
 import RegistroCaso from './pages/RegistroCaso.tsx';
 
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Router>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/casos" element={<Casos />} />
-        <Route path="/casos/:numCaso" element={<CasoDetalle />} />
-        <Route path="/registro" element={<Registro />} />
-        <Route path="/registro-caso" element={<RegistroCaso />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Login />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/home" element={<Home />} />
+            <Route path="/casos" element={<Casos />} />
+            <Route path="/casos/:numCaso" element={<CasoDetalle />} />
+            <Route path="/registro" element={<Registro />} />
+            <Route path="/registro-caso" element={<RegistroCaso />} />
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   </StrictMode>
 );

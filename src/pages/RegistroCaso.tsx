@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import Modal from '../components/common/Modal';
+import SolicitanteForm from '../components/forms/SolicitanteForm';
+import solicitanteService from '../services/solicitanteService';
 
 // ⏰ CONFIGURACIÓN DE EXPIRACIÓN: Cambia este valor para ajustar cuánto tiempo se guardan los datos
 // Valores comunes:
@@ -16,10 +19,16 @@ const EXPIRATION_TIME_MS = 7 * 24 * 60 * 60 * 1000; // 7 días en milisegundos
 
 function RegistroCaso() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const navigate = useNavigate();
-  
-  // Usar el hook personalizado para manejar localStorage
-  const [formData, setFormData, clearFormData] = useLocalStorage<any>(
+
+  // Solicitante Search & Verification State
+  const [cedulaSearch, setCedulaSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [solicitante, setSolicitante] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Usar el hook personalizado para manejar localStorage (Case data)
+  const [formData] = useLocalStorage<any>(
     'formDataRegistroCasos',
     {},
     {
@@ -36,14 +45,54 @@ function RegistroCaso() {
     setIsSidebarOpen(false);
   };
 
+  const handleSearchSolicitante = async () => {
+    if (!cedulaSearch.trim()) return;
+
+    setIsSearching(true);
+    setErrorMessage('');
+    // No reseteamos solicitante aquí para no perder la referencia si ya existía,
+    // pero lo actualizaremos con el resultado.
+
+    try {
+      console.log(`Buscando solicitante con cédula: ${cedulaSearch}`);
+      const data = await solicitanteService.getByCedula(cedulaSearch);
+      if (data) {
+        setSolicitante(data);
+        setErrorMessage('');
+        // Si existe, abrimos el modal para mostrar los datos
+        setIsModalOpen(true);
+      }
+    } catch (error: any) {
+      console.error('Error buscando solicitante:', error);
+      if (error.response && error.response.status === 404) {
+        // Not found - Open Modal to register
+        setSolicitante(null); // Aseguramos que no haya datos previos
+        setIsModalOpen(true);
+      } else {
+        setErrorMessage('Error al buscar solicitante. Intente nuevamente.');
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchResult = (newSolicitante: any) => {
+    setSolicitante(newSolicitante);
+    setIsModalOpen(false);
+    // Optionally update the search input to match
+    if (newSolicitante.cedula) {
+      setCedulaSearch(newSolicitante.cedula);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Registro de caso enviado', formData);
-    // Aquí irá la lógica para enviar los datos a la API
-    
-    // Limpiar datos guardados después de enviar exitosamente
-    // TODO: Descomentar cuando la API responda exitosamente
-    // clearFormData();
+    if (!solicitante) {
+      alert("Debe seleccionar un solicitante primero.");
+      return;
+    }
+    console.log('Registro de caso enviado', { ...formData, solicitanteId: solicitante.cedula });
+    // Aquí irá la lógica para enviar los datos a la API incluyendo el ID del solicitante
   };
 
   return (
@@ -53,34 +102,58 @@ function RegistroCaso() {
 
       <main className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
         <div className="max-w-6xl mx-auto">
-          {/* Botones de navegación superiores */}
-          <div className="flex gap-4 mb-6">
-            <button
-              type="button"
-              onClick={() => navigate('/registro')}
-              className="flex-1 py-4 rounded-lg font-bold text-lg transition-all duration-200 bg-white text-gray-700 hover:bg-gray-100 shadow"
-            >
-              Registro de Beneficiarios
-            </button>
-            <button
-              type="button"
-              className="flex-1 py-4 rounded-lg font-bold text-lg transition-all duration-200 bg-red-900 text-white shadow-lg"
-            >
-              Registro de Casos
-            </button>
+
+          <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 mb-8">
+            <h2 className="text-2xl font-bold mb-6">Identificación del Solicitante</h2>
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full">
+                <label className="block text-sm font-semibold mb-2">Cédula del Solicitante</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={cedulaSearch}
+                    onChange={(e) => setCedulaSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchSolicitante()}
+                    placeholder="Ingrese Cédula"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearchSolicitante}
+                    disabled={isSearching}
+                    className="px-6 py-2 bg-red-900 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200 disabled:bg-gray-400"
+                  >
+                    {isSearching ? 'Buscando...' : 'Buscar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {errorMessage && (
+              <p className="mt-4 text-red-600">{errorMessage}</p>
+            )}
+
+            {solicitante && (
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-semibold text-green-800 mb-2">Solicitante Verificado</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p><span className="font-medium">Nombre:</span> {solicitante.nombre}</p>
+                  <p><span className="font-medium">Cédula:</span> {solicitante.cedula}</p>
+                  <p><span className="font-medium">Teléfono:</span> {solicitante.telfCelular}</p>
+                  <p><span className="font-medium">Correo:</span> {solicitante.email}</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-6 md:p-8">
-            <h2 className="text-3xl font-bold mb-8 text-center">Registro de Casos</h2>
+          <form onSubmit={handleSubmit} className={`bg-white rounded-lg shadow-lg p-6 md:p-8 ${!solicitante ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+            <h2 className="text-3xl font-bold mb-8 text-center">Datos del Caso</h2>
 
             {/* Placeholder para campos del formulario */}
             <div className="text-center text-gray-600 py-12 border-2 border-dashed border-gray-300 rounded-lg">
-              <p className="text-xl mb-4">📋 Formulario de Registro de Casos</p>
+              <p className="text-xl mb-4">📋 Campos del Caso</p>
               <p className="text-sm mb-2">
-                Por favor, especifica qué campos necesitas para el registro de casos.
-              </p>
-              <p className="text-xs text-gray-500">
-                Ejemplo: Número de caso, Tipo de caso, Cliente, Abogado asignado, etc.
+                (Este formulario se habilita una vez verificado el solicitante)
               </p>
             </div>
 
@@ -88,7 +161,8 @@ function RegistroCaso() {
             <div className="flex justify-end mt-8">
               <button
                 type="submit"
-                className="px-8 py-3 bg-red-900 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200"
+                disabled={!solicitante}
+                className="px-8 py-3 bg-red-900 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200 disabled:bg-gray-400"
               >
                 Registrar Caso
               </button>
@@ -96,6 +170,20 @@ function RegistroCaso() {
           </form>
         </div>
       </main>
+
+      {/* Modal para registro de solicitante */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={solicitante ? "Datos del Solicitante" : "Registrar Nuevo Solicitante"}
+      >
+        <SolicitanteForm
+          isModal={true}
+          initialData={solicitante ? { ...solicitante } : { cedula: cedulaSearch }}
+          onSuccess={handleSearchResult}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }

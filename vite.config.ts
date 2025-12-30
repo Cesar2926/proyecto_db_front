@@ -7,7 +7,17 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     allowedHosts: ['.trycloudflare.com'],
-    // O usa 'all' para permitir cualquier host:
-    // allowedHosts: 'all',
+    proxy: {
+      '/auth': {
+        target: 'https://proyecto-db-backend.onrender.com',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api': {
+        target: 'https://proyecto-db-backend.onrender.com',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 })
