@@ -5,7 +5,9 @@ import { faChevronDown, faSearch } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
 import casoService from '../services/casoService';
+import catalogoService from '../services/catalogoService';
 import type { CasoSummary } from '../types/caso';
+import type { AmbitoLegal } from '../types/catalogo';
 
 type FiltroType = 'asignados' | 'todos';
 
@@ -14,6 +16,9 @@ function CasosPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchText, setSearchText] = useState('');
+
+  // Mapa de IDs de Ámbitos Legales a Nombres
+  const [ambitosLegales, setAmbitosLegales] = useState<Record<number, string>>({});
 
   // Recuperar el filtro guardado o usar 'asignados' por defecto
   const [filtro, setFiltro] = useState<FiltroType>(
@@ -40,11 +45,28 @@ function CasosPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Cargar casos desde la API
+  // Helper para aplanar el árbol de ambitos
+  const buildAmbitoMap = (ambitos: AmbitoLegal[], map: Record<number, string> = {}) => {
+    ambitos.forEach(ambito => {
+      map[ambito.id] = ambito.descripcion;
+      if (ambito.children && ambito.children.length > 0) {
+        buildAmbitoMap(ambito.children, map);
+      }
+    });
+    return map;
+  };
+
+  // Cargar casos y catálogos desde la API
   useEffect(() => {
-    const fetchCasos = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
+        // 1. Cargar catálogo de Ámbitos Legales
+        const ambitosData = await catalogoService.getAmbitosLegales();
+        const ambitosMap = buildAmbitoMap(ambitosData);
+        setAmbitosLegales(ambitosMap);
+
+        // 2. Cargar Casos
         // Por defecto traemos solo casos ABIERTOS
         // Si el filtro es 'asignados', pasamos el username
         // Si es 'todos', no pasamos username (backend devuelve todos los filtrados por estatus)
@@ -54,13 +76,13 @@ function CasosPage() {
         const data = await casoService.getAll('ABIERTO', userFilter);
         setCasos(data);
       } catch (error) {
-        console.error('Error al cargar casos:', error);
+        console.error('Error al cargar datos:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCasos();
+    fetchData();
   }, [filtro, username]);
 
   // Filtrado local por Buscador
@@ -151,13 +173,11 @@ function CasosPage() {
                     numCaso={caso.numCaso}
                     cedula={caso.cedula}
                     nombre={caso.nombreSolicitante}
-                    materia={caso.sintesis || 'Sin síntesis'}
+                    materia={ambitosLegales[caso.comAmbLegal] || 'DESCONOCIDO'}
+                    sintesis={caso.sintesis}
                     fecha={caso.fechaRecepcion}
                     estatus={caso.estatus}
                     onClick={() => handleCasoClick(caso.numCaso)}
-                    // usuarios_asignados no está en CasoSummary pero
-                    // CaseCardComponent no lo usa explícitamente en el render,
-                    // usa 'CaseCardProps' que lo tiene opcional.
                     usuarios_asignados={[]}
                   />
                 ))}

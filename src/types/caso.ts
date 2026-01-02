@@ -68,6 +68,7 @@ export interface CasoSummary {
     termino: string;
     cedula: string;
     nombreSolicitante: string;
+    comAmbLegal: number;
 }
 
 // Interfaz simplificada para listas
