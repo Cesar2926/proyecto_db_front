@@ -1,4 +1,13 @@
-import type { CaseCardProps } from '../types/tipos';
+interface CaseCardProps {
+  numCaso: string;
+  materia: string;
+  cedula: string;
+  nombre: string;
+  fecha: string;
+  estatus: string;
+  onClick?: () => void;
+  usuarios_asignados?: string[];
+}
 
 function CaseCard({ numCaso, materia, cedula, nombre, fecha, estatus, onClick }: CaseCardProps) {
   // Función para determinar el color del badge según el estatus
@@ -7,6 +16,7 @@ function CaseCard({ numCaso, materia, cedula, nombre, fecha, estatus, onClick }:
     switch (statusUpper) {
       case 'EN PROGRESO':
       case 'ACTIVO':
+      case 'ABIERTO':
         return 'bg-green-600';
       case 'CERRADO':
         return 'bg-red-600';
@@ -19,14 +29,22 @@ function CaseCard({ numCaso, materia, cedula, nombre, fecha, estatus, onClick }:
     }
   };
 
-  // Formatear fecha (opcional)
+  // Formatear fecha
   const formatFecha = (fechaStr: string) => {
-    const fecha = new Date(fechaStr);
-    return fecha.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    try {
+      if (!fechaStr) return 'Fecha no disponible';
+      // Asumimos formato YYYY-MM-DD
+      const [year, month, day] = fechaStr.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return fechaStr;
+    }
   };
 
   return (
@@ -35,7 +53,7 @@ function CaseCard({ numCaso, materia, cedula, nombre, fecha, estatus, onClick }:
       className="relative bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 w-full text-left cursor-pointer group"
     >
       {/* Barra vertical roja a la izquierda */}
-      <div className="absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-b from-red-800 to-red-950 group-hover:w-4 transition-all duration-300"></div>
+      <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-b from-red-800 to-red-950 group-hover:w-4 transition-all duration-300"></div>
 
       {/* Contenido principal */}
       <div className="pl-8 pr-6 py-6">

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, ChevronDown, Check } from 'lucide-react';
-import { type AmbitoLegal } from '../../services/catalogoService';
+import { type AmbitoLegal } from '../../types';
 
 interface SmartAmbitoSelectorProps {
     data: AmbitoLegal[]; // The full tree
@@ -26,13 +26,13 @@ export default function SmartAmbitoSelector({ data, value, onChange, disabled }:
     const items = useMemo(() => {
         const result: SearchableItem[] = [];
 
-        data.forEach(materia => {
+        data.forEach((materia: AmbitoLegal) => {
             if (materia.children) {
-                materia.children.forEach(categoria => {
+                materia.children.forEach((categoria: AmbitoLegal) => {
                     const catLabel = categoria.descripcion.startsWith("Sin ") ? "" : categoria.descripcion;
 
                     if (categoria.children) {
-                        categoria.children.forEach(sub => {
+                        categoria.children.forEach((sub: AmbitoLegal) => {
                             const subLabel = sub.descripcion.startsWith("Sin ") ? "" : sub.descripcion;
 
                             // Build path string for display
@@ -40,7 +40,7 @@ export default function SmartAmbitoSelector({ data, value, onChange, disabled }:
                             const path = parts.join(" > ");
 
                             if (sub.children) {
-                                sub.children.forEach(ambito => {
+                                sub.children.forEach((ambito: AmbitoLegal) => {
                                     result.push({
                                         id: ambito.id,
                                         label: ambito.descripcion,
@@ -107,7 +107,7 @@ export default function SmartAmbitoSelector({ data, value, onChange, disabled }:
                 {selectedItem && !isOpen && (
                     <div
                         onClick={() => { if (!disabled) setIsOpen(true); }}
-                        className="px-4 py-2 cursor-pointer flex justify-between items-center group"
+                        className="px-4 py-3 cursor-pointer flex justify-between items-center group"
                     >
                         <div className="flex flex-col items-start overflow-hidden">
                             <span className="font-medium text-gray-900 truncate w-full">{selectedItem.label}</span>
@@ -131,7 +131,7 @@ export default function SmartAmbitoSelector({ data, value, onChange, disabled }:
                             onFocus={() => setIsOpen(true)}
                             disabled={disabled}
                             placeholder={selectedItem ? "Cambiar ámbito..." : "Buscar ámbito (ej: Divorcio)..."}
-                            className={`w-full py-2.5 outline-none text-gray-700 bg-transparent placeholder-gray-400 ${disabled ? 'cursor-not-allowed' : ''}`}
+                            className={`w-full py-3 outline-none text-gray-700 bg-transparent placeholder-gray-400 ${disabled ? 'cursor-not-allowed' : ''}`}
                         />
                         {/* If open but no search text, show chevron to indicate dropdown */}
                         {isOpen && !searchTerm && <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
@@ -140,37 +140,39 @@ export default function SmartAmbitoSelector({ data, value, onChange, disabled }:
             </div>
 
             {/* Dropdown Results */}
-            {isOpen && !disabled && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 animate-fade-in divide-y divide-gray-100">
-                    {filteredItems.length === 0 ? (
-                        <div className="p-4 text-gray-500 text-center text-sm">
-                            No se encontraron coincidencias para "{searchTerm}"
-                        </div>
-                    ) : (
-                        filteredItems.map(item => (
-                            <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => handleSelect(item)}
-                                className={`
+            {
+                isOpen && !disabled && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 animate-fade-in divide-y divide-gray-100">
+                        {filteredItems.length === 0 ? (
+                            <div className="p-4 text-gray-500 text-center text-sm">
+                                No se encontraron coincidencias para "{searchTerm}"
+                            </div>
+                        ) : (
+                            filteredItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => handleSelect(item)}
+                                    className={`
                                     w-full text-left px-4 py-2 hover:bg-red-50 transition-colors flex justify-between items-start group
                                     ${item.id === value ? 'bg-red-50' : ''}
                                 `}
-                            >
-                                <div className="flex-1 min-w-0">
-                                    <div className={`font-medium truncate ${item.id === value ? 'text-red-900' : 'text-gray-800'}`}>
-                                        {item.label}
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <div className={`font-medium truncate ${item.id === value ? 'text-red-900' : 'text-gray-800'}`}>
+                                            {item.label}
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate group-hover:text-red-800">
+                                            {item.breadcrumb}
+                                        </div>
                                     </div>
-                                    <div className="text-xs text-gray-500 truncate group-hover:text-red-800">
-                                        {item.breadcrumb}
-                                    </div>
-                                </div>
-                                {item.id === value && <Check className="w-4 h-4 text-red-900 mt-1 ml-2 shrink-0" />}
-                            </button>
-                        ))
-                    )}
-                </div>
-            )}
-        </div>
+                                    {item.id === value && <Check className="w-4 h-4 text-red-900 mt-1 ml-2 shrink-0" />}
+                                </button>
+                            ))
+                        )}
+                    </div>
+                )
+            }
+        </div >
     );
 }

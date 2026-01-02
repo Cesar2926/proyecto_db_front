@@ -4,7 +4,7 @@ interface CardProps {
   onClick?: () => void;
 }
 
-function Card({ title, icon, onClick }: CardProps) {
+function HomeCard({ title, icon, onClick }: CardProps) {
   return (
     <button
       onClick={onClick}
@@ -25,4 +25,4 @@ function Card({ title, icon, onClick }: CardProps) {
   );
 }
 
-export default Card;
+export default HomeCard;

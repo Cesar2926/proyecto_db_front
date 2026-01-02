@@ -3,6 +3,7 @@ export interface BeneficiarioCreateRequest {
     cedula: string;
     tipoBeneficiario: string;
     parentesco: string;
+    nombre?: string; // Optional for UI display
 }
 
 export interface BeneficiarioResponse {
@@ -24,6 +25,8 @@ export interface CasoCreateRequest {
     username: string; // Username del abogado/estudiante
     comAmbLegal: number;
     beneficiarios: BeneficiarioCreateRequest[];
+    orientacion?: string;
+    estudiantesAtencion?: string[];
 }
 
 export interface CasoResponse {
@@ -45,8 +48,26 @@ export interface CasoResponse {
     comAmbLegal: number;
 }
 
-export interface CasoDetalleResponse extends CasoResponse {
-    // Si CasoDetalleResponse tuviera campos extra, irían aquí. 
+export interface CasoDetalleResponse {
+    caso: CasoResponse;
+    acciones: any[];
+    encuentros: any[];
+    documentos: any[];
+    pruebas: any[];
+    asignados: any[];
+    supervisores: any[];
+    beneficiarios: BeneficiarioResponse[];
+}
+
+export interface CasoSummary {
+    numCaso: string;
+    fechaRecepcion: string;
+    sintesis: string;
+    estatus: string;
+    username?: string;
+    termino: string;
+    cedula: string;
+    nombreSolicitante: string;
 }
 
 // Interfaz simplificada para listas

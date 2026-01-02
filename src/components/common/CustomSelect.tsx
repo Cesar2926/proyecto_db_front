@@ -6,7 +6,7 @@ interface Option {
 }
 
 interface CustomSelectProps {
-    label?: string;
+    label?: string | React.ReactNode;
     value: string | number;
     options: Option[];
     onChange: (value: any) => void;
@@ -84,7 +84,7 @@ export default function CustomSelect({
             <div
                 onClick={toggleOpen}
                 className={`
-                    w-full px-4 py-2 bg-white border rounded-lg cursor-pointer flex justify-between items-center transition-all duration-200
+                    w-full px-4 py-3 bg-white border rounded-lg cursor-pointer flex justify-between items-center transition-all duration-200
                     ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'hover:border-red-900'}
                     ${isOpen ? 'ring-2 ring-red-900 border-transparent' : 'border-gray-300'}
                 `}

@@ -25,9 +25,10 @@ interface SolicitanteFormProps {
     onCancel?: () => void;
     isModal?: boolean;
     embedded?: boolean;
+    simplifiedMode?: boolean;
 }
 
-export default function SolicitanteForm({ initialData, onSuccess, onCancel, isModal = false, embedded = false }: SolicitanteFormProps) {
+export default function SolicitanteForm({ initialData, onSuccess, onCancel, isModal = false, embedded = false, simplifiedMode = false }: SolicitanteFormProps) {
     const [formData, setFormData] = useState<SolicitanteRequest>({
         ...initialFormData,
         ...initialData,
@@ -150,12 +151,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
         }));
     };
 
-    const handleRadioChange = (name: keyof SolicitanteRequest, value: boolean) => {
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -165,7 +161,8 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
             console.log('Solicitante registrado:', result);
 
             if (onSuccess) {
-                onSuccess(result);
+                // Return formData because backend only returns a string message
+                onSuccess(formData);
             }
         } catch (error) {
             console.error('Error al registrar solicitante:', error);
@@ -173,28 +170,20 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
         }
     };
 
+    // Helper for conditional required
+    const isStrict = !simplifiedMode;
+
     return (
         <form onSubmit={handleSubmit} className={`${(!isModal && !embedded) ? "bg-white rounded-lg shadow-lg p-6 md:p-8" : ""}`}>
             {/* Datos personales */}
             <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-6">Datos personales</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Nombres y apellidos */}
-                    <div>
-                        <label className="block text-sm font-semibold mb-2">Nombres y apellidos</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
-                            required
-                        />
-                    </div>
-
                     {/* C.I */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">C.I</label>
+                        <label className="block text-sm font-semibold mb-2">
+                            C.I <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             name="cedula"
@@ -209,6 +198,23 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             required
                         />
                     </div>
+                    
+                    {/* Nombres y apellidos */}
+                    <div>
+                        <label className="block text-sm font-semibold mb-2">
+                            Nombres y apellidos <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            required
+                        />
+                    </div>
+
+
 
                     {/* Sexo */}
                     <div>
@@ -231,58 +237,44 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             value={formData.idEstadoCivil}
                             options={estadosCiviles.map(ec => ({ value: ec.idEstadoCivil, label: ec.nombreEstadoCivil }))}
                             onChange={(val) => setFormData(prev => ({ ...prev, idEstadoCivil: Number(val) }))}
-                            required
+                            required={isStrict}
                         />
                     </div>
 
                     {/* Fecha nacimiento */}
                     <div>
                         <CustomDatePicker
-                            label="Fecha nacimiento"
+                            label={<span>Fecha nacimiento {isStrict && <span className="text-red-500">*</span>}</span>}
                             value={formData.fechaNacimiento}
                             onChange={(val) => setFormData(prev => ({ ...prev, fechaNacimiento: val }))}
-                            required
+                            required={isStrict}
                         />
                     </div>
 
                     {/* Concubinato */}
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Concubinato</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="concubinato"
-                                    checked={formData.concubinato === true}
-                                    onChange={() => handleRadioChange('concubinato', true)}
-                                    className="w-5 h-5 text-red-900 focus:ring-red-900"
-                                />
-                                <span>Sí</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="concubinato"
-                                    checked={formData.concubinato === false}
-                                    onChange={() => handleRadioChange('concubinato', false)}
-                                    className="w-5 h-5 text-red-900 focus:ring-red-900"
-                                />
-                                <span>No</span>
-                            </label>
-                        </div>
+                        <CustomSelect
+                            label="¿Vive en concubinato?"
+                            value={formData.concubinato ? 'Si' : 'No'}
+                            options={[
+                                { value: 'Si', label: 'Sí' },
+                                { value: 'No', label: 'No' },
+                            ]}
+                            onChange={(val) => setFormData(prev => ({ ...prev, concubinato: val === 'Si' }))}
+                        />
                     </div>
 
                     {/* Nacionalidad */}
                     <div>
                         <CustomSelect
-                            label="Nacionalidad"
+                            label={<span>Nacionalidad {isStrict && <span className="text-red-500">*</span>}</span>}
                             value={formData.nacionalidad}
                             options={[
                                 { value: 'Venezolano', label: 'Venezolano' },
                                 { value: 'Extranjero', label: 'Extranjero' }
                             ]}
                             onChange={(val) => setFormData(prev => ({ ...prev, nacionalidad: String(val) }))}
-                            required
+                            required={isStrict}
                         />
                     </div>
 
@@ -309,14 +301,16 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Teléfono Personal</label>
+                            <label className="block text-sm font-semibold mb-2">
+                                Teléfono Personal {isStrict && <span className="text-red-500">*</span>}
+                            </label>
                             <input
                                 type="tel"
                                 name="telfCelular"
                                 value={formData.telfCelular}
                                 onChange={handleInputChange}
                                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
-                                required
+                                required={isStrict}
                             />
                         </div>
 
@@ -344,33 +338,33 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                         <div className="grid grid-cols-1 gap-4">
                             <div>
                                 <CustomSelect
-                                    label="Estado"
+                                    label={<span>Estado {isStrict && <span className="text-red-500">*</span>}</span>}
                                     value={selectedEstado || ''}
                                     options={estados.map(e => ({ value: e.idEstado, label: e.nombreEstado }))}
                                     onChange={(val) => handleEstadoChange(Number(val))}
-                                    required
+                                    required={isStrict}
                                 />
                             </div>
 
                             <div>
                                 <CustomSelect
-                                    label="Municipio"
+                                    label={<span>Municipio {isStrict && <span className="text-red-500">*</span>}</span>}
                                     value={selectedMunicipio || ''}
                                     options={filteredMunicipios.map(m => ({ value: m.idMunicipio, label: m.nombreMunicipio }))}
                                     onChange={(val) => handleMunicipioChange(Number(val))}
                                     disabled={!selectedEstado}
-                                    required
+                                    required={isStrict}
                                 />
                             </div>
 
                             <div>
                                 <CustomSelect
-                                    label="Parroquia"
+                                    label={<span>Parroquia {isStrict && <span className="text-red-500">*</span>}</span>}
                                     value={selectedParroquia || ''}
                                     options={filteredParroquias.map(p => ({ value: p.idParroquia, label: p.nombreParroquia }))}
                                     onChange={(val) => handleParroquiaChange(Number(val))}
                                     disabled={!selectedMunicipio}
-                                    required
+                                    required={isStrict}
                                 />
                             </div>
                         </div>

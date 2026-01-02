@@ -27,7 +27,8 @@ export interface SolicitanteResponse {
     telfCasa: string;
     telfCelular: string;
     email: string;
-    comunidadResidencia: string;
+    estadoResidencia: string;
+    municipioResidencia: string;
     parroquiaResidencia: string;
     tipoVivienda: string;
 }
