@@ -5,6 +5,9 @@ import Sidebar from '../components/Sidebar';
 //import api from '../services/api';
 // Intentionally Relaxed for Build Fix
 // import type { Caso } from '../types/caso';
+import { reporteService } from '../services/reporteService';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFileExcel } from '@fortawesome/free-solid-svg-icons';
 
 function CasoDetalle() {
   const { numCaso } = useParams<{ numCaso: string }>();
@@ -85,27 +88,41 @@ function CasoDetalle() {
 
       <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
-          {/* Botón volver */}
-          <button
-            onClick={() => navigate('/casos')}
-            className="mb-6 flex items-center gap-2 text-red-900 hover:text-red-700 font-medium transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className="flex justify-between items-center mb-6">
+            {/* Botón volver */}
+            <button
+              onClick={() => navigate('/casos')}
+              className="flex items-center gap-2 text-red-900 hover:text-red-700 font-medium transition-colors"
             >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Volver a Casos
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Volver a Casos
+            </button>
+
+            {/* Botón Exportar Reporte Caso */}
+            <button
+              onClick={() => caso.numCaso && reporteService.downloadReporteCaso(caso.numCaso)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
+              title="Descargar Reporte del Caso"
+            >
+              <FontAwesomeIcon icon={faFileExcel} />
+              <span className="hidden sm:inline">Exportar Excel</span>
+            </button>
+          </div>
+
+
 
           {/* Card con información del caso */}
           <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
