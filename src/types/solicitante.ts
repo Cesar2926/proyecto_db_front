@@ -31,4 +31,5 @@ export interface SolicitanteResponse {
     municipioResidencia: string;
     parroquiaResidencia: string;
     tipoVivienda: string;
+    apellido?: string; // Adding as optional if backend sends it, otherwise update backend DTO
 }

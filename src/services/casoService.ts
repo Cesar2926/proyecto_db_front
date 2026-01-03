@@ -16,6 +16,11 @@ const casoService = {
         const response = await api.get<CasoSummary[]>(`/casos?${params.toString()}`);
         return response.data;
     },
+
+    getById: async (id: string): Promise<CasoDetalleResponse> => {
+        const response = await api.get<CasoDetalleResponse>(`/casos/${id}`);
+        return response.data;
+    },
 };
 
 export default casoService;

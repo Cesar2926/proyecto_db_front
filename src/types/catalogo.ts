@@ -33,3 +33,9 @@ export interface AmbitoLegal {
     tipo: 'MATERIA' | 'CATEGORIA' | 'SUBCATEGORIA' | 'AMBITO';
     children?: AmbitoLegal[];
 }
+
+export interface Semestre {
+    termino: string;
+    nombre: string;
+}
+

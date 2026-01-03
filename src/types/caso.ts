@@ -48,12 +48,52 @@ export interface CasoResponse {
     comAmbLegal: number;
 }
 
+export interface AccionResponse {
+    idAccion: number;
+    numCaso: string;
+    titulo: string;
+    descripcion: string;
+    fechaRegistro: string;
+    fechaEjecucion: string;
+    username: string;
+}
+
+export interface EncuentroResponse {
+    idEncuentro: number;
+    numCaso: string;
+    fechaAtencion: string;
+    fechaProxima?: string;
+    orientacion: string;
+    observacion?: string;
+    username: string;
+}
+
+export interface DocumentoResponse {
+    idDocumento: number;
+    numCaso: string;
+    fechaRegistro: string;
+    folioIni?: number;
+    folioFin?: number;
+    titulo: string;
+    observacion?: string;
+    username: string;
+}
+
+export interface PruebaResponse {
+    idPrueba: number;
+    numCaso: string;
+    fecha: string;
+    documento: string; // Título o nombre del documento probatorio
+    observacion?: string;
+    titulo: string;
+}
+
 export interface CasoDetalleResponse {
     caso: CasoResponse;
-    acciones: any[];
-    encuentros: any[];
-    documentos: any[];
-    pruebas: any[];
+    acciones: AccionResponse[];
+    encuentros: EncuentroResponse[];
+    documentos: DocumentoResponse[];
+    pruebas: PruebaResponse[];
     asignados: any[];
     supervisores: any[];
     beneficiarios: BeneficiarioResponse[];
