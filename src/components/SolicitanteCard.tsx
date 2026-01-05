@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPhone, faEnvelope, faMapMarkerAlt, faIdCard } from '@fortawesome/free-solid-svg-icons';
+import { faPhone, faEnvelope, faIdCard } from '@fortawesome/free-solid-svg-icons';
 import type { SolicitanteResponse } from '../types/solicitante';
 
 interface SolicitanteCardProps {
@@ -49,12 +49,7 @@ function SolicitanteCard({ solicitante, onClick, onEncuestaClick }: SolicitanteC
                         <span className="truncate" title={solicitante.email}>{solicitante.email || 'No registrado'}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4 text-gray-400" />
-                        <span className="truncate" title={[solicitante.estadoResidencia, solicitante.municipioResidencia, solicitante.parroquiaResidencia].filter(Boolean).join(', ')}>
-                            {[solicitante.estadoResidencia, solicitante.municipioResidencia, solicitante.parroquiaResidencia].filter(Boolean).join(', ') || 'Sin ubicación'}
-                        </span>
-                    </div>
+
                 </div>
             </div>
 
