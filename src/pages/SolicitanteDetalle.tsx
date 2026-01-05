@@ -236,15 +236,15 @@ export default function SolicitanteDetalle() {
                                             <dl className="grid grid-cols-1 gap-y-2 text-sm">
                                                 <div className="flex justify-between border-b border-gray-50 pb-1">
                                                     <dt className="text-gray-500">Cant. Personas</dt>
-                                                    <dd className="font-medium text-gray-900">{encuesta.familia.cantPersonas}</dd>
+                                                    <dd className="font-medium text-gray-900">{encuesta.familia?.cantPersonas || 'N/A'}</dd>
                                                 </div>
                                                 <div className="flex justify-between border-b border-gray-50 pb-1">
                                                     <dt className="text-gray-500">Ingreso Mensual</dt>
-                                                    <dd className="font-medium text-gray-900">{encuesta.familia.ingresoMes}</dd>
+                                                    <dd className="font-medium text-gray-900">{encuesta.familia?.ingresoMes || 'N/A'}</dd>
                                                 </div>
                                                 <div className="flex justify-between border-b border-gray-50 pb-1">
                                                     <dt className="text-gray-500">Es Jefe de Familia</dt>
-                                                    <dd className="font-medium text-gray-900">{encuesta.familia.jefeFamilia ? 'S\u00ED' : 'No'}</dd>
+                                                    <dd className="font-medium text-gray-900">{encuesta.familia?.jefeFamilia ? 'S\u00ED' : 'No'}</dd>
                                                 </div>
                                             </dl>
                                         </section>
@@ -253,11 +253,11 @@ export default function SolicitanteDetalle() {
                                             <dl className="grid grid-cols-1 gap-y-2 text-sm">
                                                 <div className="flex justify-between border-b border-gray-50 pb-1">
                                                     <dt className="text-gray-500">Habitaciones</dt>
-                                                    <dd className="font-medium text-gray-900">{encuesta.vivienda.cantHabitaciones}</dd>
+                                                    <dd className="font-medium text-gray-900">{encuesta.vivienda?.cantHabitaciones || 'N/A'}</dd>
                                                 </div>
                                                 <div className="flex justify-between border-b border-gray-50 pb-1">
                                                     <dt className="text-gray-500">Ba&ntilde;os</dt>
-                                                    <dd className="font-medium text-gray-900">{encuesta.vivienda.cantBanos}</dd>
+                                                    <dd className="font-medium text-gray-900">{encuesta.vivienda?.cantBanos || 'N/A'}</dd>
                                                 </div>
                                             </dl>
                                         </section>

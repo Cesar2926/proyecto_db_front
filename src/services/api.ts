@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const apiUrl = import.meta.env.VITE_API_URL || 'https://proyecto-db-backend.onrender.com/api';
+const apiUrl = import.meta.env.VITE_API_URL;
 console.log('API URL:', apiUrl);
 
 const api = axios.create({
