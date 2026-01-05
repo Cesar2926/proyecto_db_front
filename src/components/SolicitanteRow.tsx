@@ -44,7 +44,7 @@ export default function SolicitanteRow({ solicitante, onClick, onEncuestaClick, 
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex justify-end gap-2">
                     <Button
-                        variant="secondary"
+                        variant="danger"
                         size="sm"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -56,7 +56,7 @@ export default function SolicitanteRow({ solicitante, onClick, onEncuestaClick, 
                         <FontAwesomeIcon icon={faEye} />
                     </Button>
                     <Button
-                        variant="secondary"
+                        variant="danger"
                         size="sm"
                         onClick={(e) => {
                             e.stopPropagation();
