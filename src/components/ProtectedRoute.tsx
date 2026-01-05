@@ -1,11 +1,13 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+import Loader from './common/Loader';
+
 const ProtectedRoute = () => {
     const { isAuthenticated, isLoading } = useAuth();
 
     if (isLoading) {
-        return <div>Cargando...</div>; // You can replace this with a proper loading spinner
+        return <Loader fullScreen text="Verificando sesión..." />;
     }
 
     return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;

@@ -17,6 +17,7 @@ import Modal from '../components/common/Modal';
 import SolicitanteRow from '../components/SolicitanteRow';
 import solicitanteService from '../services/solicitanteService';
 import type { SolicitanteResponse } from '../types/solicitante';
+import Loader from '../components/common/Loader';
 
 function Solicitantes() {
     const navigate = useNavigate();
@@ -230,12 +231,7 @@ function Solicitantes() {
 
                             {/* Grid/List de Resultados */}
                             {loading ? (
-                                <div className="flex items-center justify-center h-64">
-                                    <div className="flex flex-col items-center">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-900 mb-4"></div>
-                                        <p className="text-gray-600">Cargando solicitantes...</p>
-                                    </div>
-                                </div>
+                                <Loader text="Cargando solicitantes..." />
                             ) : (
                                 <>
                                     {filteredSolicitantes.length === 0 ? (
