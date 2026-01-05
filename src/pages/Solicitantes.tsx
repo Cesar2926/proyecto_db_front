@@ -338,7 +338,7 @@ function Solicitantes() {
                                 }}
                                 onCancel={handleEditClose}
                                 isModal={true}
-                                formMode="edit"
+                                formMode="view"
                             />
                         </Modal>
                     )}
