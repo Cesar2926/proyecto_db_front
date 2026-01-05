@@ -7,6 +7,18 @@ const casoService = {
         return response.data;
     },
 
+    update: async (id: string, data: any): Promise<void> => {
+        await api.put(`/casos/${id}`, data);
+    },
+
+    addBeneficiario: async (id: string, data: any): Promise<void> => {
+        await api.post(`/casos/${id}/beneficiarios`, data);
+    },
+
+    updateBeneficiario: async (id: string, cedula: string, data: { tipoBeneficiario: string; parentesco: string }) => {
+        await api.patch(`/casos/${id}/beneficiarios/${cedula}`, data);
+    },
+
     getAll: async (estatus?: string, username?: string, termino?: string): Promise<CasoSummary[]> => {
         const params = new URLSearchParams();
         if (estatus) params.append('estatus', estatus);

@@ -9,8 +9,12 @@ export interface SolicitanteConRespuesta extends SolicitanteResponse {
 }
 
 const solicitanteService = {
-    getAll: async () => {
-        const response = await api.get<SolicitanteResponse[]>('/solicitantes');
+    getAll: async (activeCasesOnly: boolean = false, role: string = 'TODOS') => {
+        let url = '/solicitantes?';
+        if (activeCasesOnly) url += 'activeCases=true&';
+        if (role && role !== 'TODOS') url += `role=${role}`;
+
+        const response = await api.get<SolicitanteResponse[]>(url);
         return response.data;
     },
 
@@ -33,6 +37,26 @@ const solicitanteService = {
 
     delete: async (cedula: string) => {
         const response = await api.delete(`/solicitantes/${cedula}`);
+        return response.data;
+    },
+
+    getEncuesta: async (cedula: string) => {
+        const response = await api.get<import('../types/encuesta').DatosEncuestaResponse>(`/solicitantes/${cedula}/encuesta`);
+        return response.data;
+    },
+
+    saveEncuesta: async (cedula: string, data: import('../types/encuesta').DatosEncuestaRequest) => {
+        const response = await api.post(`/solicitantes/${cedula}/encuesta`, data);
+        return response.data;
+    },
+
+    getCasosTitular: async (cedula: string) => {
+        const response = await api.get<any[]>(`/solicitantes/${cedula}/casos-titular`);
+        return response.data;
+    },
+
+    getCasosBeneficiario: async (cedula: string) => {
+        const response = await api.get<any[]>(`/solicitantes/${cedula}/casos-beneficiario`);
         return response.data;
     },
 };

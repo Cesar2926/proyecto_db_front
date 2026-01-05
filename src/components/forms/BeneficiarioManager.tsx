@@ -255,7 +255,8 @@ export default function BeneficiarioManager({ beneficiarios, onBeneficiariosChan
                     simplifiedMode={true}
                     initialData={{ cedula: cedulaSearch }}
                     onSuccess={handleNewPersonCreated}
-                    onCancel={() => setIsModalOpen(false)}
+                    onCancel={() => setIsModalOpen(false)} 
+                    formMode='create'
                 />
             </Modal>
         </div>

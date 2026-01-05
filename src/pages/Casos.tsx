@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faTh, faList } from '@fortawesome/free-solid-svg-icons';
+
+import { faFilter } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
+import Button from '../components/common/Button';
 import CustomSelect from '../components/common/CustomSelect'; // Importar CustomSelect
+import Pagination from '../components/common/Pagination';
+import SearchBar from '../components/common/SearchBar';
+import ViewToggle from '../components/common/ViewToggle';
 import casoService from '../services/casoService';
 import catalogoService from '../services/catalogoService';
 import type { CasoSummary } from '../types/caso';
@@ -129,7 +133,6 @@ function CasosPage() {
   const indexOfLastCaso = currentPage * casosPerPage;
   const indexOfFirstCaso = indexOfLastCaso - casosPerPage;
   const casosActuales = casosOrdenados.slice(indexOfFirstCaso, indexOfLastCaso);
-  const totalPages = Math.ceil(casosOrdenados.length / casosPerPage);
 
   // Opciones para CustomSelect
   const statusOptions = [
@@ -161,16 +164,11 @@ function CasosPage() {
           <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
 
             {/* Buscador de Texto */}
-            <div className="relative w-full md:w-1/3">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-red-900 focus:border-red-900 sm:text-sm transition-all"
-                placeholder="Buscar en resultados..."
+            <div className="w-full md:w-1/3">
+              <SearchBar
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={setSearchText}
+                placeholder="Buscar en resultados..."
               />
             </div>
 
@@ -178,21 +176,11 @@ function CasosPage() {
             <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
 
               {/* View Toggle */}
-              <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200 h-[46px] items-center">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-red-900' : 'text-gray-400 hover:text-gray-600'}`}
-                  title="Vista Cuadrícula"
-                >
-                  <FontAwesomeIcon icon={faTh} />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-white shadow text-red-900' : 'text-gray-400 hover:text-gray-600'}`}
-                  title="Vista Lista"
-                >
-                  <FontAwesomeIcon icon={faList} />
-                </button>
+              <div className="hidden md:flex">
+                <ViewToggle
+                  viewMode={viewMode}
+                  onToggle={setViewMode}
+                />
               </div>
 
               {/* Ordenamiento - CustomSelect */}
@@ -226,16 +214,14 @@ function CasosPage() {
               </div>
 
               {/* Toggle Mis Casos */}
-              <button
+              <Button
+                variant={onlyMyCases ? 'primary' : 'outline'}
                 onClick={() => setOnlyMyCases(!onlyMyCases)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors h-[48px] ${onlyMyCases
-                  ? 'bg-red-900 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
+                className="gap-2"
+                icon={faFilter}
               >
-                <FontAwesomeIcon icon={faFilter} className={onlyMyCases ? 'text-white' : 'text-gray-500'} />
                 {onlyMyCases ? 'Mis Casos' : 'Todos'}
-              </button>
+              </Button>
 
             </div>
           </div>
@@ -263,7 +249,8 @@ function CasosPage() {
             {casosOrdenados.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-lg border border-dashed border-gray-300">
                 <p className="text-gray-500 text-lg">No se encontraron casos con los criterios seleccionados.</p>
-                <button
+                <Button
+                  variant="link"
                   onClick={() => {
                     setSearchText('');
                     setSelectedStatus('TODOS');
@@ -271,10 +258,10 @@ function CasosPage() {
                     setOnlyMyCases(false);
                     setSortOption('fecha_desc');
                   }}
-                  className="mt-4 text-red-900 hover:underline font-medium"
+                  className="mt-4"
                 >
                   Limpiar filtros
-                </button>
+                </Button>
               </div>
             ) : (
               <>
@@ -319,7 +306,13 @@ function CasosPage() {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button onClick={() => handleCasoClick(caso.numCaso)} className="text-red-900 hover:text-red-700">Ver Detalles</button>
+                              <Button
+                                variant="link"
+                                onClick={() => handleCasoClick(caso.numCaso)}
+                                className="text-red-900 hover:text-red-700 p-0"
+                              >
+                                Ver Detalles
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -351,27 +344,12 @@ function CasosPage() {
             )}
 
             {/* Paginación */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 pb-8 mt-6">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Anterior
-                </button>
-                <span className="text-gray-600 text-sm">
-                  Página {currentPage} de {totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Siguiente
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              itemsPerPage={casosPerPage}
+              totalItems={casosOrdenados.length}
+              onPageChange={handlePageChange}
+            />
           </>
         )}
       </div>

@@ -11,6 +11,7 @@ export interface BeneficiarioResponse {
     numCaso: string;
     tipoBeneficiario: string;
     parentesco: string;
+    nombre?: string;
 }
 
 // --- Caso ---
@@ -27,6 +28,15 @@ export interface CasoCreateRequest {
     beneficiarios: BeneficiarioCreateRequest[];
     orientacion?: string;
     estudiantesAtencion?: string[];
+}
+
+export interface CasoUpdateRequest {
+    sintesis?: string;
+    codCasoTribunal?: string;
+    fechaResCasoTri?: string;
+    fechaCreaCasoTri?: string;
+    idTribunal?: number;
+    comAmbLegal?: number;
 }
 
 export interface CasoResponse {

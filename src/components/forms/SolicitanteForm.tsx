@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import Button from '../common/Button';
 import type { SolicitanteRequest, Estado, Municipio, Parroquia, EstadoCivil } from '../../types'; // Importando todo desde el index
 import solicitanteService from '../../services/solicitanteService';
 import catalogoService from '../../services/catalogoService';
 import CustomSelect from '../common/CustomSelect';
 import CustomDatePicker from '../common/CustomDatePicker';
+import CustomInput from '../common/CustomInput';
 
 const initialFormData: SolicitanteRequest = {
     nombre: '',
@@ -24,15 +27,31 @@ interface SolicitanteFormProps {
     onSuccess?: (data: any) => void;
     onCancel?: () => void;
     isModal?: boolean;
-    embedded?: boolean;
     simplifiedMode?: boolean;
+    formMode?: 'create' | 'edit' | 'view';
 }
 
-export default function SolicitanteForm({ initialData, onSuccess, onCancel, isModal = false, embedded = false, simplifiedMode = false }: SolicitanteFormProps) {
+export default function SolicitanteForm({
+    initialData,
+    onSuccess,
+    onCancel,
+    isModal = false,
+    simplifiedMode = false,
+    formMode = 'view'
+}: SolicitanteFormProps) {
     const [formData, setFormData] = useState<SolicitanteRequest>({
         ...initialFormData,
         ...initialData,
     });
+
+    // Edit Mode State
+    // Prioritize formMode for initial state
+    const [isEditing, setIsEditing] = useState(
+        formMode === 'create' ||
+        formMode === 'edit' ||
+        (!initialData?.cedula && formMode !== 'view')
+    );
+    const [saving, setSaving] = useState(false);
 
     // Estados para catálogos de ubicación
     const [estados, setEstados] = useState<Estado[]>([]);
@@ -100,8 +119,14 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
     useEffect(() => {
         if (initialData) {
             setFormData(prev => ({ ...prev, ...initialData }));
+
+            // Si estamos en modo 'view' y llega data, aseguramos no-edición.
+            // Si estamos en 'create' o 'edit', mantenemos el estado de edición activo.
+            if (formMode === 'view' && initialData.cedula) {
+                setIsEditing(false);
+            }
         }
-    }, [initialData]);
+    }, [initialData, formMode]);
 
     // Validación para campos que no deben tener números
     const validateTextOnly = (value: string): boolean => {
@@ -119,6 +144,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        // e.target can be from CustomInput which uses similar event structure
         const { name, value } = e.target;
 
         // Campos que solo deben aceptar letras (sin números)
@@ -155,18 +181,45 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
         try {
-            console.log('Enviando datos del solicitante:', formData);
-            const result = await solicitanteService.create(formData);
-            console.log('Solicitante registrado:', result);
+            // Sanitize payload: convert 0 or empty string to undefined
+            const payload: any = { ...formData };
+            Object.keys(payload).forEach((key) => {
+                const value = payload[key];
+                if (typeof value === 'string' && value.trim() === '') {
+                    payload[key] = undefined;
+                } else if (typeof value === 'number' && value === 0) {
+                    payload[key] = undefined;
+                }
+            });
+
+            console.log('Enviando datos del solicitante:', payload);
+            let result;
+
+            if (initialData && initialData.cedula && formMode !== 'create') {
+                // Update existing
+                result = await solicitanteService.update(initialData.cedula, payload);
+                console.log('Solicitante actualizado:', result);
+                setIsEditing(false); // Go back to read-only after save
+                alert('Solicitante actualizado exitosamente');
+            } else {
+                // Create new
+                result = await solicitanteService.create(payload);
+                console.log('Solicitante registrado:', result);
+            }
 
             if (onSuccess) {
-                // Return formData because backend only returns a string message
-                onSuccess(formData);
+                // If backend returns a simple string (message), return our payload so the UI has the data.
+                // If it returns an object (the saved entity), use that.
+                const finalData = (typeof result === 'object' && result !== null) ? result : payload;
+                onSuccess(finalData);
             }
         } catch (error) {
-            console.error('Error al registrar solicitante:', error);
+            console.error('Error al registrar/actualizar solicitante:', error);
             alert('Error al registrar el solicitante. Por favor verifique los datos.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -174,10 +227,35 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
     const isStrict = !simplifiedMode;
 
     return (
-        <form onSubmit={handleSubmit} className={`${(!isModal && !embedded) ? "bg-white rounded-lg shadow-lg p-6 md:p-8" : ""}`}>
+        <form onSubmit={handleSubmit} className={isModal ? "p-6 md:p-8" : "bg-white rounded-lg shadow-lg p-6 md:p-8"}>
             {/* Datos personales */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-red-900">
+                    {/* Título dinámico: Nuevo solo si modo create O no hay data existente (data vacía) */}
+                    {(formMode === 'create' || (!initialData?.cedula && !initialData?.nombre)) ? 'Nuevo Solicitante' : 'Datos del Solicitante'}
+                </h2>
+
+                {formMode !== 'create' && !isEditing && initialData && (
+                    <Button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        variant="secondary"
+                        icon={faEdit}
+                    >
+                        Editar
+                    </Button>
+                )}
+
+                {onCancel && isModal && (
+                    <div className="-mr-2">
+                        {/* Close button for modal usually handled by modal header, but if we need generic close inside form: */}
+                        {/* Using ghost variants or just keeping it simple */}
+                    </div>
+                )}
+            </div>
+
             <section className="mb-8">
-                <h2 className="text-2xl font-bold mb-6">Datos personales</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Identificación</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* C.I */}
                     <div>
@@ -193,12 +271,12 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             maxLength={8}
                             pattern="\d+"
                             title="Ingrese solo números"
-                            disabled={isModal}
-                            className={`w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent ${isModal ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            disabled={isModal || !isEditing || (!!initialData?.cedula)} // Cannot change ID once created
+                            className={`w-full px-4 h-11 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent ${(isModal || !isEditing || (!!initialData?.cedula)) ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                             required
                         />
                     </div>
-                    
+
                     {/* Nombres y apellidos */}
                     <div>
                         <label className="block text-sm font-semibold mb-2">
@@ -209,7 +287,8 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             name="nombre"
                             value={formData.nombre}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                            disabled={!isEditing}
+                            className={`w-full px-4 h-11 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent ${!isEditing ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                             required
                         />
                     </div>
@@ -227,6 +306,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             ]}
                             onChange={(val) => setFormData(prev => ({ ...prev, sexo: String(val) }))}
                             required
+                            disabled={!isEditing}
                         />
                     </div>
 
@@ -238,6 +318,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             options={estadosCiviles.map(ec => ({ value: ec.idEstadoCivil, label: ec.nombreEstadoCivil }))}
                             onChange={(val) => setFormData(prev => ({ ...prev, idEstadoCivil: Number(val) }))}
                             required={isStrict}
+                            disabled={!isEditing}
                         />
                     </div>
 
@@ -248,6 +329,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             value={formData.fechaNacimiento}
                             onChange={(val) => setFormData(prev => ({ ...prev, fechaNacimiento: val }))}
                             required={isStrict}
+                            disabled={!isEditing}
                         />
                     </div>
 
@@ -261,6 +343,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                                 { value: 'No', label: 'No' },
                             ]}
                             onChange={(val) => setFormData(prev => ({ ...prev, concubinato: val === 'Si' }))}
+                            disabled={!isEditing}
                         />
                     </div>
 
@@ -275,6 +358,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                             ]}
                             onChange={(val) => setFormData(prev => ({ ...prev, nacionalidad: String(val) }))}
                             required={isStrict}
+                            disabled={!isEditing}
                         />
                     </div>
 
@@ -284,46 +368,44 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
             </section>
 
             {/* Datos de contacto y residencia */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {/* Datos de contacto */}
                 <section>
-                    <h2 className="text-2xl font-bold mb-6">Datos de contacto</h2>
-                    <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-red-900 border-b border-red-100 pb-2 mb-4">Datos de contacto</h2>
+                    <div className="space-y-3">
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Teléfono local</label>
-                            <input
+                            <CustomInput
+                                label="Teléfono local"
                                 type="tel"
                                 name="telfCasa"
                                 value={formData.telfCasa}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                                disabled={!isEditing}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold mb-2">
-                                Teléfono Personal {isStrict && <span className="text-red-500">*</span>}
-                            </label>
-                            <input
+                            <CustomInput
+                                label={<span>Teléfono Personal {isStrict && <span className="text-red-500">*</span>}</span>}
                                 type="tel"
                                 name="telfCelular"
                                 value={formData.telfCelular}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
                                 required={isStrict}
+                                disabled={!isEditing}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Correo electrónico</label>
-                            <input
+                            <CustomInput
+                                label="Correo electrónico"
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-                                title="Ingrese un correo electrónico válido (ejemplo: usuario@dominio.com)"
-                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent"
+                                title="Ingrese un correo electrónico válido"
+                                disabled={!isEditing}
                             />
                         </div>
                     </div>
@@ -331,11 +413,11 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
 
                 {/* Datos de residencia */}
                 <section>
-                    <h2 className="text-2xl font-bold mb-6">Datos de residencia</h2>
-                    <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-red-900 border-b border-red-100 pb-2 mb-4">Datos de residencia</h2>
+                    <div className="space-y-3">
 
                         {/* Selectores de Ubicación en Cascada */}
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-3">
                             <div>
                                 <CustomSelect
                                     label={<span>Estado {isStrict && <span className="text-red-500">*</span>}</span>}
@@ -343,6 +425,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                                     options={estados.map(e => ({ value: e.idEstado, label: e.nombreEstado }))}
                                     onChange={(val) => handleEstadoChange(Number(val))}
                                     required={isStrict}
+                                    disabled={!isEditing}
                                 />
                             </div>
 
@@ -352,7 +435,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                                     value={selectedMunicipio || ''}
                                     options={filteredMunicipios.map(m => ({ value: m.idMunicipio, label: m.nombreMunicipio }))}
                                     onChange={(val) => handleMunicipioChange(Number(val))}
-                                    disabled={!selectedEstado}
+                                    disabled={!isEditing}
                                     required={isStrict}
                                 />
                             </div>
@@ -363,7 +446,7 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                                     value={selectedParroquia || ''}
                                     options={filteredParroquias.map(p => ({ value: p.idParroquia, label: p.nombreParroquia }))}
                                     onChange={(val) => handleParroquiaChange(Number(val))}
-                                    disabled={!selectedMunicipio}
+                                    disabled={!isEditing}
                                     required={isStrict}
                                 />
                             </div>
@@ -373,23 +456,31 @@ export default function SolicitanteForm({ initialData, onSuccess, onCancel, isMo
                 </section>
             </div>
 
-            {/* Botón de enviar */}
-            <div className="flex justify-end gap-4">
+            {/* Botón de enviar (Solo visible si es modal y no hay acciones de header, O si estamos editando) */}
+            {/* Botón de enviar (Solo visible si es modal y no hay acciones de header, O si estamos editando) */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 {onCancel && (
-                    <button
+                    <Button
                         type="button"
                         onClick={onCancel}
-                        className="px-8 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors duration-200"
+                        variant="secondary"
+                        icon={faTimes}
                     >
-                        Cancelar
-                    </button>
+                        {isEditing ? 'Cancelar' : 'Cerrar'}
+                    </Button>
                 )}
-                <button
-                    type="submit"
-                    className="px-8 py-3 bg-red-900 text-white rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200"
-                >
-                    {isModal ? 'Guardar Solicitante' : 'Registrar Beneficiario'}
-                </button>
+
+                {isEditing && (
+                    <Button
+                        type="submit"
+                        disabled={saving}
+                        isLoading={saving}
+                        variant="primary"
+                        icon={faSave}
+                    >
+                        Guardar
+                    </Button>
+                )}
             </div>
         </form>
     );

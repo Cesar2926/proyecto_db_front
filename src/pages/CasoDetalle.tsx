@@ -4,13 +4,19 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import casoService from '../services/casoService';
 import solicitanteService from '../services/solicitanteService';
+import catalogoService from '../services/catalogoService';
+import Modal from '../components/common/Modal';
+import CustomSelect from '../components/common/CustomSelect';
+import Button from '../components/common/Button';
+// import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal'; 
+import SolicitanteForm from '../components/forms/SolicitanteForm';
+import { Plus, Search, UserPlus, Pencil } from 'lucide-react';
 
-import type { CasoDetalleResponse, CasoResponse, AccionResponse, EncuentroResponse, DocumentoResponse, BeneficiarioResponse } from '../types/caso';
+import type { CasoDetalleResponse, CasoResponse, BeneficiarioResponse, CasoUpdateRequest } from '../types/caso';
+import type { Tribunal } from '../types/catalogo';
 
 import type { SolicitanteResponse } from '../types/solicitante';
 import { getFullAmbitoPath } from '../utils/ambitoUtils';
-// Using type import removes runtime dependency, fixing unused errors implicitly in some linters, 
-// else we just ensure they are referenced in types only.
 
 function CasoDetalle() {
   const { numCaso } = useParams<{ numCaso: string }>();
@@ -25,17 +31,38 @@ function CasoDetalle() {
   const [solicitante, setSolicitante] = useState<SolicitanteResponse | null>(null);
   const [materiaNombre, setMateriaNombre] = useState<string>('');
 
+  // Catalogs
+  const [tribunales, setTribunales] = useState<Tribunal[]>([]);
+
   // UI State
   const [activeTab, setActiveTab] = useState<'general' | 'beneficiarios' | 'historial' | 'documentos' | 'pruebas'>('general');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddBeneficiarioModalOpen, setIsAddBeneficiarioModalOpen] = useState(false);
+
+  // Beneficiario Add State (Inline)
+  const [cedulaSearch, setCedulaSearch] = useState('');
+  const [foundPerson, setFoundPerson] = useState<any>(null); // Persona encontrada (SolicitanteResponse)
+  const [newBenParentesco, setNewBenParentesco] = useState('');
+  const [newBenTipo, setNewBenTipo] = useState('');
+  const [showSolicitanteForm, setShowSolicitanteForm] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
+  // Edit Form State
+  const [editFormData, setEditFormData] = useState<CasoUpdateRequest>({});
 
   useEffect(() => {
     const fetchData = async () => {
       if (!numCaso) return;
       setLoading(true);
       try {
-        // 1. Fetch Case Details
-        const detalle = await casoService.getById(numCaso);
+        // 1. Fetch Case Details and Catalogs
+        const [detalle, listaTribunales] = await Promise.all([
+          casoService.getById(numCaso),
+          catalogoService.getTribunales().catch(() => []) // Silent fail for catalogs
+        ]);
+
         setCasoDetalle(detalle);
+        setTribunales(listaTribunales);
 
         // 2. Fetch Solicitante Name (Parallel if possible, but dependent on cedula)
         if (detalle.caso.cedula) {
@@ -80,6 +107,141 @@ function CasoDetalle() {
       age--;
     }
     return age;
+  };
+
+  const openEditModal = () => {
+    if (!casoDetalle) return;
+    setEditFormData({
+      sintesis: casoDetalle.caso.sintesis,
+      idTribunal: casoDetalle.caso.idTribunal,
+      codCasoTribunal: casoDetalle.caso.codCasoTribunal || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!numCaso || !casoDetalle) return;
+    try {
+      await casoService.update(numCaso, editFormData);
+      // Refresh data locally
+      const updatedCaso = { ...casoDetalle.caso, ...editFormData };
+      // If Tribunal changed, update Name too
+      if (editFormData.idTribunal) {
+        const trib = tribunales.find(t => t.idTribunal === editFormData.idTribunal);
+        if (trib) updatedCaso.nombreTribunal = trib.nombreTribunal;
+      }
+      setCasoDetalle({ ...casoDetalle, caso: updatedCaso as CasoResponse });
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error("Error updating caso", err);
+      alert("Error al actualizar el caso");
+    }
+  };
+
+  /* --- Funciones de Editar Beneficiario --- */
+  const [editingBeneficiario, setEditingBeneficiario] = useState<SolicitanteResponse | null>(null);
+  const [editingRelacion, setEditingRelacion] = useState({ parentesco: '', tipoBeneficiario: '' });
+  const [isEditBeneficiarioModalOpen, setIsEditBeneficiarioModalOpen] = useState(false);
+
+  const handleEditBeneficiario = async (cedula: string) => {
+    try {
+      setLoading(true);
+      const [solicitanteData, casoData] = await Promise.all([
+        solicitanteService.getByCedula(cedula),
+        // We need current relationship data. We can find it in 'beneficiarios' state
+        Promise.resolve(casoDetalle?.beneficiarios?.find(b => b.cedula === cedula))
+      ]);
+
+      setEditingBeneficiario(solicitanteData);
+      if (casoData) {
+        setEditingRelacion({
+          parentesco: casoData.parentesco,
+          tipoBeneficiario: casoData.tipoBeneficiario
+        });
+      }
+      setIsEditBeneficiarioModalOpen(true);
+    } catch (e) {
+      console.error("Error cargando beneficiario", e);
+      alert("No se pudo cargar la información del beneficiario");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditBeneficiarioSuccess = () => {
+    setIsEditBeneficiarioModalOpen(false);
+    setEditingBeneficiario(null);
+    // Refresh parent data to show updated names if changed
+    // We can just call fetchData() if we refactor it out of useEffect or force re-render
+    // Simulating refresh by re-fetching
+    const refresh = async () => {
+      if (!numCaso) return;
+      const updatedCaso = await casoService.getById(numCaso);
+      setCasoDetalle(updatedCaso);
+    };
+    refresh();
+  };
+
+  /* --- Funciones de Beneficiario Inline --- */
+
+  const handleAddBeneficiarioInternal = async (newBen: any) => {
+    if (!numCaso || !casoDetalle) return;
+    await casoService.addBeneficiario(numCaso, newBen);
+
+    const addedBen: BeneficiarioResponse = {
+      cedula: newBen.cedula,
+      nombre: newBen.nombre || '',
+      parentesco: newBen.parentesco,
+      tipoBeneficiario: newBen.tipoBeneficiario,
+      numCaso: numCaso
+    };
+
+    const newBeneficiarios = casoDetalle.beneficiarios ? [...casoDetalle.beneficiarios, addedBen] : [addedBen];
+    setCasoDetalle({ ...casoDetalle, beneficiarios: newBeneficiarios });
+
+    // Reset modal state
+    setFoundPerson(null);
+    setCedulaSearch('');
+    setNewBenParentesco('');
+    setNewBenTipo('');
+    setIsAddBeneficiarioModalOpen(false);
+  };
+
+  const handleSearchPerson = async () => {
+    setSearchError('');
+    setFoundPerson(null);
+    if (!cedulaSearch) return;
+
+    try {
+      const persona = await solicitanteService.getByCedula(cedulaSearch);
+      if (persona) {
+        setFoundPerson(persona);
+      } else {
+        setSearchError('Persona no encontrada. Puede registrarla.');
+      }
+    } catch (e) {
+      setSearchError('Persona no encontrada o error al buscar.');
+    }
+  };
+
+  const handleAddBeneficiarioClick = async () => {
+    if (!foundPerson || !newBenParentesco || !newBenTipo) return;
+
+    const newBen = {
+      cedula: foundPerson.cedula,
+      nombre: foundPerson.nombre, // Se envía para UI optimista, backend lo saca de DB
+      parentesco: newBenParentesco,
+      tipoBeneficiario: newBenTipo
+    };
+    await handleAddBeneficiarioInternal(newBen);
+  };
+
+  const handleNewPersonSuccess = (newPerson: any) => {
+    // Al crear persona, volvemos al modo de "persona encontrada"
+    setShowSolicitanteForm(false);
+    setFoundPerson(newPerson);
+    setCedulaSearch(newPerson.cedula);
+    setSearchError('');
   };
 
   if (loading) {
@@ -164,10 +326,7 @@ function CasoDetalle() {
                       {calculateAge(solicitante.fechaNacimiento)} años, {solicitante.estadoCivil}
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-xs text-gray-500">Ubicación</span>
-                    <span className="text-sm font-medium text-gray-900">{solicitante.parroquiaResidencia}, {solicitante.municipioResidencia}</span>
-                  </div>
+
                 </div>
               </div>
             )}
@@ -190,12 +349,26 @@ function CasoDetalle() {
                 <span className="text-sm font-medium">{caso.termino}</span>
               </div>
             </div>
+
+            {(caso.nombreTribunal || caso.codCasoTribunal) && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="block text-xs text-gray-500 uppercase tracking-wide">Tribunal</span>
+                    <span className="text-sm font-medium text-gray-900">{caso.nombreTribunal || 'No asignado'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-gray-500 uppercase tracking-wide">N° Expediente / Causa</span>
+                    <span className="text-sm font-medium text-gray-900">{caso.codCasoTribunal || 'No registrado'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tabs */}
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-              {/* Show Pruebas tab, and show Documentos only if codCasoTribunal exists */}
               {[
                 { id: 'general', label: 'General' },
                 { id: 'beneficiarios', label: 'Beneficiarios' },
@@ -225,26 +398,33 @@ function CasoDetalle() {
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Síntesis del Caso</h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Síntesis del Caso</h3>
+                  <button
+                    onClick={openEditModal}
+                    className="px-3 py-1 text-sm font-medium text-red-900 border border-red-900 rounded-md hover:bg-red-50 transition-colors"
+                  >
+                    Editar Informacion
+                  </button>
+                </div>
                 <p className="text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">
                   {caso.sintesis || 'No hay síntesis registrada.'}
                 </p>
 
-                {caso.idTribunal && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Información de Tribunal</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-3 rounded">
-                        <div className="text-xs text-gray-500">Tribunal</div>
-                        <div className="font-medium">{caso.nombreTribunal || 'N/A'}</div>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <div className="text-xs text-gray-500">Causa / Expediente</div>
-                        <div className="font-medium">{caso.codCasoTribunal || 'N/A'}</div>
-                      </div>
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Información de Tribunal</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="text-xs text-gray-500">Tribunal</div>
+                      <div className="font-medium">{caso.nombreTribunal || 'N/A'}</div>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="text-xs text-gray-500">Causa / Expediente</div>
+                      <div className="font-medium">{caso.codCasoTribunal || 'N/A'}</div>
                     </div>
                   </div>
-                )}
+                </div>
+
               </div>
             )}
 
@@ -253,6 +433,13 @@ function CasoDetalle() {
               <div className="p-6">
                 <div className="mb-4 flex justify-between items-center">
                   <h3 className="text-lg font-semibold text-gray-900">Beneficiarios ({beneficiarios?.length || 0})</h3>
+                  <Button
+                    onClick={() => setIsAddBeneficiarioModalOpen(true)}
+                    variant="primary"
+                    size="sm"
+                  >
+                    <Plus size={16} className="mr-2" /> Agregar
+                  </Button>
                 </div>
                 {(!beneficiarios || beneficiarios.length === 0) ? (
                   <p className="text-gray-500 italic">No hay beneficiarios registrados.</p>
@@ -264,6 +451,7 @@ function CasoDetalle() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cédula</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parentesco</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -272,6 +460,15 @@ function CasoDetalle() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ben.cedula}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ben.parentesco}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ben.tipoBeneficiario}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                              <button
+                                onClick={() => handleEditBeneficiario(ben.cedula)}
+                                className="text-gray-400 hover:text-red-900 transition-colors"
+                                title="Editar información del beneficiario"
+                              >
+                                <Pencil size={18} />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -388,7 +585,248 @@ function CasoDetalle() {
           </div>
         </div>
       </main>
-    </div>
+
+      {/* EDIT BENEFICIARIO MODAL */}
+      <Modal
+        isOpen={isEditBeneficiarioModalOpen}
+        onClose={() => setIsEditBeneficiarioModalOpen(false)}
+        title={`Editar Información de Beneficiario${editingBeneficiario ? `: ${editingBeneficiario.nombre}` : ''}`}
+      >
+        <div className="p-0">
+          <div className="p-0">
+            {editingBeneficiario && (
+              <div className="flex flex-col gap-4">
+                {/*  Relationship Form Section - Only shown here */}
+                <div className="px-6 pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Parentesco</label>
+                    <CustomSelect
+                      options={[
+                        { value: "", label: "Seleccione..." },
+                        { value: "Hijo", label: "Hijo/a" },
+                        { value: "Padre", label: "Padre/Madre" },
+                        { value: "Esposo", label: "Esposo/a" },
+                        { value: "Hermano", label: "Hermano/a" },
+                        { value: "Otro", label: "Otro" }
+                      ]}
+                      value={editingRelacion.parentesco}
+                      onChange={(val) => setEditingRelacion({ ...editingRelacion, parentesco: String(val) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo Beneficiario</label>
+                    <CustomSelect
+                      options={[
+                        { value: "Directo", label: "Directo" },
+                        { value: "Indirecto", label: "Indirecto" }
+                      ]}
+                      value={editingRelacion.tipoBeneficiario}
+                      onChange={(val) => setEditingRelacion({ ...editingRelacion, tipoBeneficiario: String(val) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="pb-2">
+                  <SolicitanteForm
+                    initialData={editingBeneficiario as any}
+                    formMode="edit"
+                    onSuccess={async (updatedSolicitante) => {
+                      // 1. SolicitanteForm already updated the personal info via solicitanteService.update
+                      // 2. Now we update the relationship info via casoService
+                      if (numCaso && updatedSolicitante.cedula) {
+                        try {
+                          await casoService.updateBeneficiario(numCaso, updatedSolicitante.cedula, {
+                            tipoBeneficiario: editingRelacion.tipoBeneficiario,
+                            parentesco: editingRelacion.parentesco
+                          });
+                          handleEditBeneficiarioSuccess();
+                        } catch (err) {
+                          console.error("Error updating relationship", err);
+                          alert("Datos personales guardados, pero hubo un error actualizando la relación con el caso.");
+                        }
+                      }
+                    }}
+                    onCancel={() => setIsEditBeneficiarioModalOpen(false)}
+                    isModal={true}
+                    simplifiedMode={true} // Solo datos mínimos obligatorios
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* EDIT MODAL */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Editar Información del Caso"
+      >
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Síntesis</label>
+            <textarea
+              className="w-full border rounded-lg p-2 focus:ring-red-900 focus:border-red-900"
+              rows={4}
+              value={editFormData.sintesis || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, sintesis: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tribunal Asignado</label>
+              <CustomSelect
+                options={[{ value: '', label: 'Sin Asignar' }, ...tribunales.map(t => ({ value: t.idTribunal, label: t.nombreTribunal }))]}
+                value={editFormData.idTribunal || ''}
+                onChange={(val) => setEditFormData({ ...editFormData, idTribunal: val ? Number(val) : undefined })}
+                placeholder="Seleccione tribunal"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">N° Expediente / Causa</label>
+              <input
+                type="text"
+                className="w-full border rounded-lg p-2 focus:ring-red-900 focus:border-red-900"
+                value={editFormData.codCasoTribunal || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, codCasoTribunal: e.target.value })}
+                placeholder="Ej: ABC-123456"
+              />
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-2">
+            <Button
+              onClick={() => setIsEditModalOpen(false)}
+              variant="secondary"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              variant="primary"
+            >
+              Guardar Cambios
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isAddBeneficiarioModalOpen}
+        onClose={() => {
+          setIsAddBeneficiarioModalOpen(false);
+          setShowSolicitanteForm(false);
+          setFoundPerson(null);
+          setCedulaSearch('');
+          setSearchError('');
+        }}
+        title="Agregar Beneficiario"
+      >
+        {/* Usamos un contenedor con padding condicional: Si mostramos el form completo de Solicitante, este ya tiene padding interno (p-6/p-8), 
+            así que podríamos reducir el padding del contenedor padre si quisiéramos. 
+            Pero SolicitanteForm tiene estilos de tarjeta (bg-white shadow p-6). 
+            Al estar dentro de un modal blank, queremos que se vea integrado.
+            Mejor opción: container simple p-6 para búsqueda, y para form quizás p-0 y dejar que el form se encargue.
+        */}
+        <div className={!showSolicitanteForm ? "p-6 space-y-4" : ""}>
+          {!showSolicitanteForm ? (
+            <>
+              {/* Search Section */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Buscar por Cédula"
+                  className="flex-1 border p-2 rounded focus:ring-red-900 focus:border-red-900 outline-none"
+                  value={cedulaSearch}
+                  onChange={(e) => setCedulaSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchPerson()}
+                />
+                <Button onClick={handleSearchPerson} variant="primary">
+                  <Search size={18} />
+                </Button>
+              </div>
+
+              {searchError && (
+                <div className="text-red-500 text-sm flex justify-between items-center text-center p-2 bg-red-50 rounded border border-red-100">
+                  <span>{searchError}</span>
+                  <Button onClick={() => setShowSolicitanteForm(true)} variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                    <UserPlus size={16} className="mr-1" /> Registrar Nuevo
+                  </Button>
+                </div>
+              )}
+
+              {/* Found Person & Form */}
+              {foundPerson && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-100 shadow-sm animate-fade-in">
+                  <p className="font-semibold text-green-900 mb-2">Persona encontrada: {foundPerson.nombre} ({foundPerson.cedula})</p>
+
+                  <div className="mt-4 grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Parentesco con solicitante</label>
+                      <CustomSelect
+                        options={[
+                          { value: "", label: "Seleccione..." },
+                          { value: "Hijo", label: "Hijo/a" },
+                          { value: "Padre", label: "Padre/Madre" },
+                          { value: "Esposo", label: "Esposo/a" },
+                          { value: "Hermano", label: "Hermano/a" },
+                          { value: "Otro", label: "Otro" }
+                        ]}
+                        value={newBenParentesco}
+                        onChange={(val) => setNewBenParentesco(val)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Tipo de Beneficiario</label>
+                      <CustomSelect
+                        options={[
+                          { value: "", label: "Seleccione..." },
+                          { value: "Directo", label: "Directo" },
+                          { value: "Indirecto", label: "Indirecto" }
+                        ]}
+                        value={newBenTipo}
+                        onChange={(val) => setNewBenTipo(val)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex justify-end">
+                    <Button
+                      onClick={handleAddBeneficiarioClick}
+                      disabled={!newBenParentesco || !newBenTipo}
+                      variant="primary" // Keeping project color (Red)
+                    >
+                      Agregar al Caso
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Create New Person Form */
+            <div>
+              <div className="flex justify-between items-center mb-0 p-4 border-b bg-gray-50">
+                <h4 className="font-semibold text-gray-800">Registrar Nueva Persona</h4>
+                <button onClick={() => setShowSolicitanteForm(false)} className="text-gray-500 hover:text-gray-700 text-sm font-medium">Volver</button>
+              </div>
+              <div className="p-0"> {/* SolicitanteForm has its own padding but inside a card. We might want to strip card styles if possible or just let it be. */}
+                <SolicitanteForm
+                  onSuccess={handleNewPersonSuccess}
+                  onCancel={() => setShowSolicitanteForm(false)}
+                  isModal={true}
+                  simplifiedMode={true}
+                  formMode="create"
+                  initialData={{ cedula: cedulaSearch }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+    </div >
   );
 }
 
