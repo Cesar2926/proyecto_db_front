@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { faFilter } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
+import CasoRow from '../components/CasoRow';
 import Button from '../components/common/Button';
 import CustomSelect from '../components/common/CustomSelect'; // Importar CustomSelect
 import Pagination from '../components/common/Pagination';
@@ -282,39 +283,12 @@ function CasosPage() {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {casosActuales.map((caso) => (
-                          <tr key={caso.numCaso} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {caso.numCaso}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <div className="font-medium text-gray-900">{caso.nombreSolicitante}</div>
-                              <div className="text-xs text-gray-500">{caso.cedula}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {ambitosLegales[caso.comAmbLegal] || 'DESCONOCIDO'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(caso.fechaRecepcion).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${caso.estatus === 'ABIERTO' ? 'bg-green-100 text-green-800' :
-                                caso.estatus === 'CERRADO' ? 'bg-red-100 text-red-800' :
-                                  caso.estatus === 'EN PAUSA' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-blue-100 text-blue-800'
-                                }`}>
-                                {caso.estatus}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <Button
-                                variant="link"
-                                onClick={() => handleCasoClick(caso.numCaso)}
-                                className="text-red-900 hover:text-red-700 p-0"
-                              >
-                                Ver Detalles
-                              </Button>
-                            </td>
-                          </tr>
+                          <CasoRow
+                            key={caso.numCaso}
+                            caso={caso}
+                            materia={ambitosLegales[caso.comAmbLegal] || 'DESCONOCIDO'}
+                            onClick={() => handleCasoClick(caso.numCaso)}
+                          />
                         ))}
                       </tbody>
                     </table>

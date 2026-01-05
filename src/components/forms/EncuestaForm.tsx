@@ -7,6 +7,7 @@ import catalogoService from '../../services/catalogoService';
 import CustomSelect from '../common/CustomSelect';
 import CustomInput from '../common/CustomInput';
 import CustomCheckbox from '../common/CustomCheckbox';
+import Button from '../common/Button';
 import type { DatosEncuestaRequest, FamiliaDTO, ViviendaDTO } from '../../types/encuesta';
 import type { TipoViviendaResponse, CondicionLaboralResponse, CondicionActividadResponse } from '../../types';
 
@@ -99,13 +100,21 @@ export default function EncuestaForm({ cedula, onSuccess, onCancel }: EncuestaFo
         setVivienda(prev => ({ ...prev, [name]: Number(value) }));
     };
 
-    const toggleCharacteristic = (idTipo: number, idCat: number) => {
+    const toggleCharacteristic = (idTipo: number, idCat: number, nombreTipo: string) => {
         setSelectedChars(prev => {
-            const exists = prev.find(p => p.idTipoCat === idTipo && p.idCatVivienda === idCat);
+            const isArtefactos = nombreTipo.toLowerCase().includes('artefactos') || nombreTipo.toLowerCase().includes('electro');
+
+            // If it's NOT Artefactos, first remove any existing selection for this idTipo
+            let newSelection = isArtefactos ? [...prev] : prev.filter(p => p.idTipoCat !== idTipo);
+
+            const exists = newSelection.find(p => p.idTipoCat === idTipo && p.idCatVivienda === idCat);
+
             if (exists) {
-                return prev.filter(p => !(p.idTipoCat === idTipo && p.idCatVivienda === idCat));
+                // Determine if we should allow toggling off in single-select mode. 
+                // Usually yes, user can uncheck.
+                return newSelection.filter(p => !(p.idTipoCat === idTipo && p.idCatVivienda === idCat));
             } else {
-                return [...prev, { idTipoCat: idTipo, idCatVivienda: idCat }];
+                return [...newSelection, { idTipoCat: idTipo, idCatVivienda: idCat }];
             }
         });
     };
@@ -138,17 +147,17 @@ export default function EncuestaForm({ cedula, onSuccess, onCancel }: EncuestaFo
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Encuesta Socioeconómica</h2>
                 {!isEditing && (
-                    <button
+                    <Button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors flex items-center"
+                        variant="secondary"
+                        icon={faEdit}
                     >
-                        <FontAwesomeIcon icon={faEdit} className="mr-2" /> Editar
-                    </button>
+                        Editar
+                    </Button>
                 )}
             </div>
 
-            {/* DATOS SOLICITANTE */}
             <section className="mb-8">
                 <h3 className="text-lg font-semibold text-red-900 border-b border-red-100 pb-2 mb-4">Datos Laborales del Solicitante</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -158,21 +167,40 @@ export default function EncuestaForm({ cedula, onSuccess, onCancel }: EncuestaFo
                                 label="Condición Laboral"
                                 value={idCondicion || ''}
                                 options={condicionesLaborales.map(c => ({ value: c.id, label: c.condicion }))}
-                                onChange={(val) => setIdCondicion(Number(val))}
+                                onChange={(val) => {
+                                    setIdCondicion(Number(val));
+                                    // Reset condicion actividad if not 'Sin trabajo'? Usually safer to keep user intent or clear it.
+                                    // For now just hide it.
+                                }}
                                 placeholder="Seleccione..."
                                 disabled={!isEditing}
                             />
                         </div>
-                        <div>
-                            <CustomSelect
-                                label="Condición de Actividad"
-                                value={idCondicionActividad || ''}
-                                options={condicionesActividad.map(c => ({ value: c.id, label: c.nombre }))}
-                                onChange={(val) => setIdCondicionActividad(Number(val))}
-                                placeholder="Seleccione..."
-                                disabled={!isEditing}
-                            />
-                        </div>
+
+                        {/* Show Condición Actividad ONLY if Condición Laboral is 'Sin trabajo' (or similar) */}
+                        {(() => {
+                            const selectedCond = condicionesLaborales.find(c => c.id === idCondicion);
+                            // Check for "Sin trabajo" case-insensitive or by ID if known. ID is safer but text is more robust to DB reseeds if IDs change.
+                            // Assuming typical naming.
+                            const isSinTrabajo = selectedCond?.condicion.toLowerCase().includes('sin trabajo')
+                                || selectedCond?.condicion.toLowerCase().includes('desempleado');
+
+                            if (isSinTrabajo) {
+                                return (
+                                    <div>
+                                        <CustomSelect
+                                            label="Condición de Actividad"
+                                            value={idCondicionActividad || ''}
+                                            options={condicionesActividad.map(c => ({ value: c.id, label: c.nombre }))}
+                                            onChange={(val) => setIdCondicionActividad(Number(val))}
+                                            placeholder="Seleccione..."
+                                            disabled={!isEditing}
+                                        />
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
                     </div>
                 </div>
             </section>
@@ -296,7 +324,7 @@ export default function EncuestaForm({ cedula, onSuccess, onCancel }: EncuestaFo
                                             <CustomCheckbox
                                                 label={cat.descripcion}
                                                 checked={isChecked}
-                                                onChange={() => !isEditing ? {} : toggleCharacteristic(tipo.id, cat.id)}
+                                                onChange={() => !isEditing ? {} : toggleCharacteristic(tipo.id, cat.id, tipo.nombre)}
                                                 disabled={!isEditing}
                                                 className="py-1" // Add padding for better spacing in list
                                             />
@@ -311,18 +339,25 @@ export default function EncuestaForm({ cedula, onSuccess, onCancel }: EncuestaFo
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 {onCancel && (
-                    <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
-                        <FontAwesomeIcon icon={faTimes} className="mr-2" /> {isEditing ? 'Cancelar' : 'Cerrar'}
-                    </button>
+                    <Button
+                        type="button"
+                        onClick={onCancel}
+                        variant="secondary"
+                        icon={faTimes}
+                    >
+                        {isEditing ? 'Cancelar' : 'Cerrar'}
+                    </Button>
                 )}
                 {isEditing && (
-                    <button
+                    <Button
                         type="submit"
-                        disabled={saving}
-                        className="px-6 py-2 bg-red-900 text-white rounded-md hover:bg-red-800 transition-colors disabled:opacity-50 flex items-center"
+                        isLoading={saving}
+                        variant="primary"
+                        icon={faSave}
+                        className="flex items-center"
                     >
-                        {saving ? <><FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> Guardando...</> : <><FontAwesomeIcon icon={faSave} className="mr-2" /> Guardar Encuesta</>}
-                    </button>
+                        {saving ? 'Guardando...' : 'Guardar Encuesta'}
+                    </Button>
                 )}
             </div>
         </form>

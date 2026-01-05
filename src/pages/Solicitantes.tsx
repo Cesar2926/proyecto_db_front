@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faArrowLeft, faTimes, faFileAlt, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
@@ -13,6 +12,9 @@ import Button from '../components/common/Button';
 import SearchBar from '../components/common/SearchBar';
 import ViewToggle from '../components/common/ViewToggle';
 import CustomSelect from '../components/common/CustomSelect';
+import Switch from '../components/common/Switch';
+import Modal from '../components/common/Modal';
+import SolicitanteRow from '../components/SolicitanteRow';
 import solicitanteService from '../services/solicitanteService';
 import type { SolicitanteResponse } from '../types/solicitante';
 
@@ -21,9 +23,12 @@ function Solicitantes() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
+    // Edit Modal State
+    const [showEditForm, setShowEditForm] = useState(false);
+
     // Encuesta Modal State
     const [showEncuesta, setShowEncuesta] = useState(false);
-    const [selectedCedula, setSelectedCedula] = useState<string | null>(null);
+    const [selectedSolicitante, setSelectedSolicitante] = useState<SolicitanteResponse | null>(null);
 
     // Data State
     const [solicitantes, setSolicitantes] = useState<SolicitanteResponse[]>([]);
@@ -55,10 +60,10 @@ function Solicitantes() {
     };
 
     useEffect(() => {
-        if (!showForm && !showEncuesta) {
+        if (!showForm && !showEncuesta && !showEditForm) {
             fetchSolicitantes();
         }
-    }, [showForm, showEncuesta, filterActiveCases, filterRole]);
+    }, [showForm, showEncuesta, showEditForm, filterActiveCases, filterRole]);
 
     const handleSuccess = (data: any) => {
         console.log('Registro exitoso:', data);
@@ -66,14 +71,24 @@ function Solicitantes() {
         setShowForm(false);
     };
 
-    const handleEncuestaClick = (cedula: string) => {
-        setSelectedCedula(cedula);
+    const handleEncuestaClick = (solicitante: SolicitanteResponse) => {
+        setSelectedSolicitante(solicitante);
         setShowEncuesta(true);
     };
 
     const handleEncuestaClose = () => {
         setShowEncuesta(false);
-        setSelectedCedula(null);
+        setSelectedSolicitante(null);
+    };
+
+    const handleEditClick = (solicitante: SolicitanteResponse) => {
+        setSelectedSolicitante(solicitante);
+        setShowEditForm(true);
+    };
+
+    const handleEditClose = () => {
+        setShowEditForm(false);
+        setSelectedSolicitante(null);
     };
 
     const handleCardClick = (solicitante: SolicitanteResponse) => {
@@ -149,7 +164,7 @@ function Solicitantes() {
                             </Button>
                             <div className="bg-white/90 backdrop-blur-md border border-white/20 rounded-lg shadow-xl p-6 md:p-8">
                                 <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Nuevo Solicitante</h2>
-                                <SolicitanteForm onSuccess={handleSuccess} />
+                                <SolicitanteForm onSuccess={handleSuccess} formMode='create' />
                             </div>
                         </div>
                     ) : (
@@ -158,24 +173,20 @@ function Solicitantes() {
                             {/* Toolbar */}
                             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                                 {/* Buscador */}
-                                <div className="w-full md:w-1/3">
-                                    <SearchBar
-                                        value={searchText}
-                                        onChange={setSearchText}
-                                        placeholder="Buscar por nombre o cédula..."
-                                    />
-                                    <div className="mt-2 flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id="activeCasesFilter"
-                                            checked={filterActiveCases}
-                                            onChange={(e) => setFilterActiveCases(e.target.checked)}
-                                            className="h-4 w-4 text-red-900 border-gray-300 rounded focus:ring-red-900 cursor-pointer"
+                                {/* Buscador y Switch */}
+                                <div className="flex flex-col xl:flex-row items-center gap-4 flex-1 min-w-0">
+                                    <div className="w-full xl:w-80">
+                                        <SearchBar
+                                            value={searchText}
+                                            onChange={setSearchText}
+                                            placeholder="Buscar por nombre o cédula..."
                                         />
-                                        <label htmlFor="activeCasesFilter" className="ml-2 text-sm text-gray-700 cursor-pointer select-none">
-                                            Solo con casos activos
-                                        </label>
                                     </div>
+                                    <Switch
+                                        checked={filterActiveCases}
+                                        onChange={setFilterActiveCases}
+                                        label="Solo con casos activos"
+                                    />
                                 </div>
 
                                 {/* Filter Role */}
@@ -249,7 +260,7 @@ function Solicitantes() {
                                                             key={sol.cedula}
                                                             solicitante={sol}
                                                             onClick={() => handleCardClick(sol)}
-                                                            onEncuestaClick={() => handleEncuestaClick(sol.cedula)}
+                                                            onEncuestaClick={() => handleEncuestaClick(sol)}
                                                         />
                                                     ))}
                                                 </div>
@@ -267,64 +278,13 @@ function Solicitantes() {
                                                         </thead>
                                                         <tbody className="bg-white divide-y divide-gray-200">
                                                             {currentItems.map((sol) => (
-                                                                <tr key={sol.cedula} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleCardClick(sol)}>
-                                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                                        <div className="flex items-center">
-                                                                            <div className="shrink-0 h-10 w-10">
-                                                                                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-900 font-bold">
-                                                                                    {sol.nombre.charAt(0).toUpperCase()}
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="ml-4">
-                                                                                <div className="text-sm font-medium text-gray-900">{sol.nombre} {sol.apellido || ''}</div>
-                                                                                <div className="text-xs text-gray-500">{sol.trabaja ? 'Trabaja' : 'No trabaja'}</div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                        {sol.cedula}
-                                                                    </td>
-
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                        <div className="flex flex-col">
-                                                                            <span>{sol.telfCelular || sol.telfCasa}</span>
-                                                                            <span className="text-xs text-gray-400">{sol.email}</span>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                                                            {sol.estadoCivil}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                                        <div className="flex justify-end gap-2">
-                                                                            <Button
-                                                                                variant="secondary"
-                                                                                size="sm"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleCardClick(sol);
-                                                                                }}
-                                                                                className="rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-900 border-none p-2 h-8 w-8"
-                                                                                title="Ver Detalle"
-                                                                            >
-                                                                                <FontAwesomeIcon icon={faEye} />
-                                                                            </Button>
-                                                                            <Button
-                                                                                variant="danger"
-                                                                                size="sm"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleEncuestaClick(sol.cedula);
-                                                                                }}
-                                                                                className="rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-900 border-none p-2 h-8 w-8"
-                                                                                title="Encuesta"
-                                                                            >
-                                                                                <FontAwesomeIcon icon={faFileAlt} />
-                                                                            </Button>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
+                                                                <SolicitanteRow
+                                                                    key={sol.cedula}
+                                                                    solicitante={sol}
+                                                                    onClick={() => handleCardClick(sol)}
+                                                                    onEncuestaClick={handleEncuestaClick}
+                                                                    onEditClick={() => handleEditClick(sol)}
+                                                                />
                                                             ))}
                                                         </tbody>
                                                     </table>
@@ -346,27 +306,41 @@ function Solicitantes() {
                     )}
 
                     {/* MODAL ENCUESTA */}
-                    {showEncuesta && selectedCedula && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                                    <h3 className="text-xl font-bold text-gray-800">Encuesta Socioeconómica - C.I: {selectedCedula}</h3>
-                                    <Button variant="ghost" onClick={handleEncuestaClose} className="text-gray-500 hover:text-red-900 p-1">
-                                        <FontAwesomeIcon icon={faTimes} size="lg" />
-                                    </Button>
-                                </div>
-                                <div className="p-0"> {/* Padding managed inside form */}
-                                    <EncuestaForm
-                                        cedula={selectedCedula}
-                                        onSuccess={() => {
-                                            alert("Encuesta guardada con éxito");
-                                            handleEncuestaClose();
-                                        }}
-                                        onCancel={handleEncuestaClose}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                    {showEncuesta && selectedSolicitante && (
+                        <Modal
+                            isOpen={showEncuesta}
+                            onClose={handleEncuestaClose}
+                            title={`Encuesta Socioeconómica - ${selectedSolicitante.nombre} ${selectedSolicitante.apellido || ''} (C.I: ${selectedSolicitante.cedula})`}
+                        >
+                            <EncuestaForm
+                                cedula={selectedSolicitante.cedula}
+                                onSuccess={() => {
+                                    alert("Encuesta guardada con éxito");
+                                    handleEncuestaClose();
+                                }}
+                                onCancel={handleEncuestaClose}
+                            />
+                        </Modal>
+                    )}
+
+                    {/* MODAL EDITAR SOLICITANTE */}
+                    {showEditForm && selectedSolicitante && (
+                        <Modal
+                            isOpen={showEditForm}
+                            onClose={handleEditClose}
+                            title={`Editar Solicitante - ${selectedSolicitante.nombre} ${selectedSolicitante.apellido || ''}`}
+                        >
+                            <SolicitanteForm
+                                initialData={selectedSolicitante}
+                                onSuccess={(data) => {
+                                    handleSuccess(data);
+                                    handleEditClose();
+                                }}
+                                onCancel={handleEditClose}
+                                isModal={true}
+                                formMode="edit"
+                            />
+                        </Modal>
                     )}
 
 

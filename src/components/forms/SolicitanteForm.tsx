@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from '../common/Button';
 import type { SolicitanteRequest, Estado, Municipio, Parroquia, EstadoCivil } from '../../types'; // Importando todo desde el index
 import solicitanteService from '../../services/solicitanteService';
@@ -29,6 +31,7 @@ interface SolicitanteFormProps {
     isModal?: boolean;
     simplifiedMode?: boolean;
     formMode?: 'create' | 'edit' | 'view';
+    allowEditCedula?: boolean;
 }
 
 export default function SolicitanteForm({
@@ -37,7 +40,8 @@ export default function SolicitanteForm({
     onCancel,
     isModal = false,
     simplifiedMode = false,
-    formMode = 'view'
+    formMode = 'view',
+    allowEditCedula = false
 }: SolicitanteFormProps) {
     const [formData, setFormData] = useState<SolicitanteRequest>({
         ...initialFormData,
@@ -62,6 +66,9 @@ export default function SolicitanteForm({
     const [selectedEstado, setSelectedEstado] = useState<number>(0);
     const [selectedMunicipio, setSelectedMunicipio] = useState<number>(0);
     const [selectedParroquia, setSelectedParroquia] = useState<number>(0);
+
+    // Duplicate Error State for Modal
+    const [duplicateError, setDuplicateError] = useState<any>(null);
 
     // Cargar Catálogos al montar (Preloading)
     useEffect(() => {
@@ -215,9 +222,23 @@ export default function SolicitanteForm({
                 const finalData = (typeof result === 'object' && result !== null) ? result : payload;
                 onSuccess(finalData);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al registrar/actualizar solicitante:', error);
-            alert('Error al registrar el solicitante. Por favor verifique los datos.');
+            const status = error.response?.status;
+            const data = error.response?.data;
+
+            if (status === 409 && data && (typeof data === 'object')) {
+                // Backend returned existing resource info - it might be wrapped in 'data' field of ApiResponse
+                // Our GlobalExceptionHandler returns ApiResponse with 'data' field containing the object
+                // So we might need data.data or just data depending on structure.
+                // Based on GlobalExceptionHandler: ApiResponse("...", object) -> json: { status, message, data: object }
+                const duplicateData = data.data || data;
+                setDuplicateError(duplicateData);
+            } else if (status === 409) {
+                alert(data?.message || 'Ya existe un solicitante con esa cédula.');
+            } else {
+                alert('Error al registrar el solicitante. Por favor verifique los datos.');
+            }
         } finally {
             setSaving(false);
         }
@@ -227,7 +248,7 @@ export default function SolicitanteForm({
     const isStrict = !simplifiedMode;
 
     return (
-        <form onSubmit={handleSubmit} className={isModal ? "p-6 md:p-8" : "bg-white rounded-lg shadow-lg p-6 md:p-8"}>
+        <form onSubmit={handleSubmit} className={isModal ? "p-6 md:p-8" : "bg-white rounded-lg shadow-lg p-6 md:p-8 relative"}>
             {/* Datos personales */}
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
                 <h2 className="text-2xl font-bold text-red-900">
@@ -271,8 +292,8 @@ export default function SolicitanteForm({
                             maxLength={8}
                             pattern="\d+"
                             title="Ingrese solo números"
-                            disabled={isModal || !isEditing || (!!initialData?.cedula)} // Cannot change ID once created
-                            className={`w-full px-4 h-11 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent ${(isModal || !isEditing || (!!initialData?.cedula)) ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
+                            disabled={!isEditing || ((!!initialData?.cedula && formMode !== 'create') && !allowEditCedula)}
+                            className={`w-full px-4 h-11 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent ${(!isEditing || ((!!initialData?.cedula && formMode !== 'create') && !allowEditCedula)) ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                             required
                         />
                     </div>
@@ -456,8 +477,7 @@ export default function SolicitanteForm({
                 </section>
             </div>
 
-            {/* Botón de enviar (Solo visible si es modal y no hay acciones de header, O si estamos editando) */}
-            {/* Botón de enviar (Solo visible si es modal y no hay acciones de header, O si estamos editando) */}
+            {/* Botón de enviar */}
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 {onCancel && (
                     <Button
@@ -482,6 +502,54 @@ export default function SolicitanteForm({
                     </Button>
                 )}
             </div>
+
+            {/* DUPLICATE USER MODAL */}
+            {duplicateError && createPortal(
+                <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 animate-slide-up-modal">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-red-900 flex items-center gap-2">
+                                <span className="p-2 bg-red-100 rounded-full">
+                                    <FontAwesomeIcon icon={faTimes} className="text-red-600" />
+                                </span>
+                                Usuario ya registrado
+                            </h3>
+                            <button onClick={() => setDuplicateError(null)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4">
+                            <p className="text-orange-700">
+                                La cédula <strong>{duplicateError.cedula}</strong> ya se encuentra registrada en el sistema.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <p className="text-sm text-gray-600">Pertenece a:</p>
+                            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-800 font-bold shrink-0">
+                                    {(duplicateError.nombre || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-gray-900">{duplicateError.nombre} {duplicateError.apellido || ''}</p>
+                                    <p className="text-xs text-gray-500">{duplicateError.email || 'Sin correo'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <Button
+                                onClick={() => setDuplicateError(null)}
+                                variant="secondary"
+                            >
+                                Cerrar
+                            </Button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </form>
     );
 }
