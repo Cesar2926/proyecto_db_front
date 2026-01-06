@@ -58,6 +58,16 @@ export interface CasoResponse {
     comAmbLegal: number;
 }
 
+
+export interface AccionCreateRequest {
+    titulo: string;
+    descripcion: string;
+    fechaRegistro: string;
+    fechaEjecucion?: string;
+    username: string;
+    ejecutantes: string[];
+}
+
 export interface AccionResponse {
     idAccion: number;
     numCaso: string;

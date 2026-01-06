@@ -9,10 +9,11 @@ import Modal from '../components/common/Modal';
 import CustomSelect from '../components/common/CustomSelect';
 import Button from '../components/common/Button';
 // import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal'; 
+import AddAccionModal from '../components/modals/AddAccionModal';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import { Plus, Search, UserPlus, Pencil } from 'lucide-react';
 
-import type { CasoDetalleResponse, CasoResponse, BeneficiarioResponse, CasoUpdateRequest } from '../types/caso';
+import type { CasoDetalleResponse, CasoResponse, BeneficiarioResponse, CasoUpdateRequest, AccionCreateRequest } from '../types/caso';
 import type { Tribunal } from '../types/catalogo';
 
 import type { SolicitanteResponse } from '../types/solicitante';
@@ -46,6 +47,9 @@ function CasoDetalle() {
   const [newBenTipo, setNewBenTipo] = useState('');
   const [showSolicitanteForm, setShowSolicitanteForm] = useState(false);
   const [searchError, setSearchError] = useState('');
+
+  // Accion State
+  const [isAddAccionModalOpen, setIsAddAccionModalOpen] = useState(false);
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState<CasoUpdateRequest>({});
@@ -242,6 +246,22 @@ function CasoDetalle() {
     setFoundPerson(newPerson);
     setCedulaSearch(newPerson.cedula);
     setSearchError('');
+  };
+
+  const handleAddAccion = async (data: AccionCreateRequest) => {
+    if (!numCaso || !casoDetalle) return;
+    try {
+      await casoService.createAccion(numCaso, data);
+      // Refresh data
+      const updated = await casoService.getById(numCaso);
+      setCasoDetalle(updated);
+      // setIsAddAccionModalOpen(false); // Handled by onSuccess in Modal if logic matches, but Modal usually just calls this.
+      // Actually, Modal calls onSuccess and closes itself? No, Modal closes itself in its handleSubmit usually if we passed it onClose.
+      // My AddAccionModal calls onSuccess then onClose.
+    } catch (err) {
+      console.error("Error adding accion", err);
+      alert("Error al registrar la acción");
+    }
   };
 
   if (loading) {
@@ -505,7 +525,12 @@ function CasoDetalle() {
 
                 {/* Actions Section */}
                 <section>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 border-l-4 border-green-500 pl-3">Acciones Legales</h3>
+                  <div className="flex justify-between items-center mb-4 border-l-4 border-green-500 pl-3">
+                    <h3 className="text-lg font-semibold text-gray-900">Acciones Legales</h3>
+                    <Button onClick={() => setIsAddAccionModalOpen(true)} size="sm" variant="outline" className="text-green-700 border-green-200 hover:bg-green-50">
+                      <Plus size={16} className="mr-1" /> Registrar Acción
+                    </Button>
+                  </div>
                   {(!acciones || acciones.length === 0) ? (
                     <p className="text-gray-500 text-sm ml-4">No hay acciones registradas.</p>
                   ) : (
@@ -656,6 +681,13 @@ function CasoDetalle() {
           </div>
         </div>
       </Modal>
+
+      <AddAccionModal
+        isOpen={isAddAccionModalOpen}
+        onClose={() => setIsAddAccionModalOpen(false)}
+        onSuccess={handleAddAccion}
+        defaultUsername={casoDetalle.caso.username}
+      />
 
       {/* EDIT MODAL */}
       <Modal

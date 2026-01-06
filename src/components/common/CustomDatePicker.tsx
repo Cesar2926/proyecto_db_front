@@ -85,11 +85,23 @@ export default function CustomDatePicker({
     const handlePrev = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (view === 'days') {
-            setViewDate(new Date(year, month - 1, 1));
+            if (year > 1900 || (year === 1900 && month > 0)) {
+                setViewDate(new Date(year, month - 1, 1));
+            }
         } else if (view === 'years') {
-            setViewDate(new Date(year - 12, month, 1));
+            // Logic for years view navigation: goes back 12 years
+            // Ensure we don't go below 1900 block
+            const targetYear = year - 12;
+            if (targetYear >= 1900) {
+                setViewDate(new Date(targetYear, month, 1));
+            } else {
+                setViewDate(new Date(1900, month, 1));
+            }
         } else {
-            setViewDate(new Date(year - 1, month, 1));
+            // Months view (prev year)
+            if (year > 1900) {
+                setViewDate(new Date(year - 1, month, 1));
+            }
         }
     };
 
@@ -124,6 +136,24 @@ export default function CustomDatePicker({
     };
 
     // Render Helpers
+    // Helper: Check if a date is within min/max range
+    const isDateWithinRange = (d: Date) => {
+        // Reset hours to compare just dates
+        const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+        if (min) {
+            const [minY, minM, minD] = min.split('-').map(Number);
+            const minDate = new Date(minY, minM - 1, minD);
+            if (date < minDate) return false;
+        }
+        if (max) {
+            const [maxY, maxM, maxD] = max.split('-').map(Number);
+            const maxDate = new Date(maxY, maxM - 1, maxD);
+            if (date > maxDate) return false;
+        }
+        return true;
+    };
+
     const renderHeader = () => {
         return (
             <div className="flex justify-between items-center mb-4 px-2">
@@ -187,22 +217,29 @@ export default function CustomDatePicker({
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                     {padding.map((_, i) => <div key={`pad-${i}`} />)}
-                    {days.map(day => (
-                        <button
-                            key={day}
-                            type="button"
-                            onClick={() => handleDayClick(day)}
-                            className={`
-                                h-9 w-9 flex items-center justify-center rounded-lg text-sm transition-colors
-                                ${isSelected(day)
-                                    ? 'bg-red-900 text-white font-bold shadow-md'
-                                    : 'hover:bg-red-50 text-gray-700 font-medium'
-                                }
-                            `}
-                        >
-                            {day}
-                        </button>
-                    ))}
+                    {days.map(day => {
+                        const dateToCheck = new Date(year, month, day);
+                        const disabled = !isDateWithinRange(dateToCheck);
+                        return (
+                            <button
+                                key={day}
+                                type="button"
+                                onClick={() => !disabled && handleDayClick(day)}
+                                disabled={disabled}
+                                className={`
+                                    h-9 w-9 flex items-center justify-center rounded-lg text-sm transition-colors
+                                    ${disabled
+                                        ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                                        : isSelected(day)
+                                            ? 'bg-red-900 text-white font-bold shadow-md'
+                                            : 'hover:bg-red-50 text-gray-700 font-medium'
+                                    }
+                                `}
+                            >
+                                {day}
+                            </button>
+                        );
+                    })}
                 </div>
             </>
         );
@@ -232,28 +269,46 @@ export default function CustomDatePicker({
     };
 
     const renderYears = () => {
-        // Show 12 years centered around current view year
+        // Show 12 years centered, but ensure we don't go below 1900 if user requested 'start from 1900' behavior globally
+        // Or strictly respect min/max for rendering
         const startYear = year - 6;
         const years = Array.from({ length: 12 }, (_, i) => startYear + i);
 
         return (
             <div className="grid grid-cols-3 gap-2">
-                {years.map(y => (
-                    <button
-                        key={y}
-                        type="button"
-                        onClick={() => handleYearClick(y)}
-                        className={`
-                            py-2 px-1 rounded-lg text-sm font-medium transition-colors
-                            ${y === year
-                                ? 'bg-red-900 text-white shadow-md'
-                                : 'hover:bg-red-50 text-gray-700 hover:text-red-900'
-                            }
-                        `}
-                    >
-                        {y}
-                    </button>
-                ))}
+                {years.map(y => {
+                    // Check if year is strictly out of range (all days in year out of range?)
+                    // Simplified year check: if year < minYear or year > maxYear
+                    let disabled = false;
+                    if (min) {
+                        const [minY] = min.split('-').map(Number);
+                        if (y < minY) disabled = true;
+                    }
+                    if (max) {
+                        const [maxY] = max.split('-').map(Number);
+                        if (y > maxY) disabled = true;
+                    }
+
+                    return (
+                        <button
+                            key={y}
+                            type="button"
+                            onClick={() => !disabled && handleYearClick(y)}
+                            disabled={disabled}
+                            className={`
+                                py-2 px-1 rounded-lg text-sm font-medium transition-colors
+                                ${disabled
+                                    ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                                    : y === year
+                                        ? 'bg-red-900 text-white shadow-md'
+                                        : 'hover:bg-red-50 text-gray-700 hover:text-red-900'
+                                }
+                            `}
+                        >
+                            {y}
+                        </button>
+                    );
+                })}
             </div>
         );
     };
