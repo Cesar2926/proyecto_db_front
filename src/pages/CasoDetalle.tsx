@@ -8,6 +8,8 @@ import catalogoService from '../services/catalogoService';
 import Modal from '../components/common/Modal';
 import CustomSelect from '../components/common/CustomSelect';
 import Button from '../components/common/Button';
+// import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal'; 
+import AddAccionModal from '../components/modals/AddAccionModal';
 // import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import { Plus, Search, UserPlus, Pencil } from 'lucide-react';
@@ -53,6 +55,9 @@ function CasoDetalle() {
   const [newBenTipo, setNewBenTipo] = useState('');
   const [showSolicitanteForm, setShowSolicitanteForm] = useState(false);
   const [searchError, setSearchError] = useState('');
+
+  // Accion State
+  const [isAddAccionModalOpen, setIsAddAccionModalOpen] = useState(false);
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState<CasoUpdateRequest>({});
@@ -257,6 +262,22 @@ function CasoDetalle() {
     setFoundPerson(newPerson);
     setCedulaSearch(newPerson.cedula);
     setSearchError('');
+  };
+
+  const handleAddAccion = async (data: AccionCreateRequest) => {
+    if (!numCaso || !casoDetalle) return;
+    try {
+      await casoService.createAccion(numCaso, data);
+      // Refresh data
+      const updated = await casoService.getById(numCaso);
+      setCasoDetalle(updated);
+      // setIsAddAccionModalOpen(false); // Handled by onSuccess in Modal if logic matches, but Modal usually just calls this.
+      // Actually, Modal calls onSuccess and closes itself? No, Modal closes itself in its handleSubmit usually if we passed it onClose.
+      // My AddAccionModal calls onSuccess then onClose.
+    } catch (err) {
+      console.error("Error adding accion", err);
+      alert("Error al registrar la acción");
+    }
   };
 
   if (loading) {
@@ -888,6 +909,13 @@ function CasoDetalle() {
           </div>
         </div>
       </Modal>
+
+      <AddAccionModal
+        isOpen={isAddAccionModalOpen}
+        onClose={() => setIsAddAccionModalOpen(false)}
+        onSuccess={handleAddAccion}
+        defaultUsername={casoDetalle.caso.username}
+      />
 
       {/* EDIT MODAL */}
       <Modal
