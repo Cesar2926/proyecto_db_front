@@ -8,7 +8,7 @@ import catalogoService from '../services/catalogoService';
 import Modal from '../components/common/Modal';
 import CustomSelect from '../components/common/CustomSelect';
 import Button from '../components/common/Button';
-// import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal'; 
+// import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import AddAccionModal from '../components/modals/AddAccionModal';
 // import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
@@ -49,6 +49,21 @@ function CasoDetalle() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddBeneficiarioModalOpen, setIsAddBeneficiarioModalOpen] = useState(false);
 
+  // Estado para el modal de eventos de la línea de tiempo
+  const [selectedEvento, setSelectedEvento] = useState<any>(null);
+  const [isEventoModalOpen, setIsEventoModalOpen] = useState(false);
+
+  // Cerrar modal de evento con Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isEventoModalOpen) {
+        setIsEventoModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEventoModalOpen]);
+
   // Beneficiario Add State (Inline)
   const [cedulaSearch, setCedulaSearch] = useState('');
   const [foundPerson, setFoundPerson] = useState<any>(null); // Persona encontrada (SolicitanteResponse)
@@ -73,13 +88,6 @@ function CasoDetalle() {
           casoService.getById(numCaso),
           catalogoService.getTribunales().catch(() => []), // Silent fail for catalogs
         ]);
-
-        console.log('📋 Detalle del caso completo:', detalle);
-        console.log('📊 Estructura del caso:', {
-          caso: detalle.caso,
-          beneficiarios: detalle.beneficiarios,
-          totalBeneficiarios: detalle.beneficiarios?.length || 0,
-        });
 
         setCasoDetalle(detalle);
         setTribunales(listaTribunales);
@@ -276,8 +284,8 @@ function CasoDetalle() {
       // Actually, Modal calls onSuccess and closes itself? No, Modal closes itself in its handleSubmit usually if we passed it onClose.
       // My AddAccionModal calls onSuccess then onClose.
     } catch (err) {
-      console.error("Error adding accion", err);
-      alert("Error al registrar la acción");
+      console.error('Error adding accion', err);
+      alert('Error al registrar la acción');
     }
   };
 
@@ -453,10 +461,11 @@ function CasoDetalle() {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`
                                 py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors
-                                ${activeTab === tab.id
-                      ? 'border-red-900 text-red-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }
+                                ${
+                                  activeTab === tab.id
+                                    ? 'border-red-900 text-red-900'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }
                             `}
                 >
                   {tab.label}
@@ -590,6 +599,13 @@ function CasoDetalle() {
                     titulo: string;
                     descripcion?: string;
                     observacion?: string;
+                    // Campos adicionales para acciones
+                    idAccion?: number;
+                    fechaEjecucion?: string;
+                    username?: string;
+                    // Campos adicionales para encuentros
+                    idEncuentro?: number;
+                    fechaAtencion?: string;
                   }> = [];
 
                   // Agregar acciones
@@ -601,6 +617,10 @@ function CasoDetalle() {
                         fecha: new Date(acc.fechaRegistro),
                         titulo: acc.titulo,
                         descripcion: acc.descripcion,
+                        // Datos adicionales de la acción
+                        idAccion: acc.idAccion,
+                        fechaEjecucion: acc.fechaEjecucion,
+                        username: acc.username,
                       });
                     });
                   }
@@ -614,6 +634,9 @@ function CasoDetalle() {
                         fecha: new Date(enc.fechaAtencion),
                         titulo: enc.orientacion,
                         observacion: enc.observacion,
+                        // Datos adicionales del encuentro
+                        idEncuentro: enc.idEncuentro,
+                        fechaAtencion: enc.fechaAtencion,
                       });
                     });
                   }
@@ -687,14 +710,20 @@ function CasoDetalle() {
                             >
                               {/* Círculo en la línea */}
                               <div
-                                className={`absolute top-8 ${isFirst ? 'w-12 h-12 left-2' : 'w-8 h-8 left-4'
-                                  } rounded-full ${style.bgColor} border-4 border-white shadow-lg flex items-center justify-center z-10 transition-all`}
+                                className={`absolute top-12 w-8 h-8 left-4 rounded-full 
+                                  ${style.bgColor} border-4 border-white shadow-lg flex items-center 
+                                  justify-center z-10 transition-all`}
                               ></div>
 
                               {/* Tarjeta de contenido */}
                               <div
-                                className={`bg-white rounded-lg shadow-md border-l-4 ${style.borderColor} p-5 hover:shadow-lg transition-shadow ${isLast ? 'opacity-80' : ''
-                                  }`}
+                                onClick={() => {
+                                  setSelectedEvento(evento);
+                                  setIsEventoModalOpen(true);
+                                }}
+                                className={`bg-white rounded-lg shadow-md border-l-4 ${style.borderColor} p-5 hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer ${
+                                  isLast ? 'opacity-80' : ''
+                                }`}
                               >
                                 {/* Header */}
                                 <div className="flex justify-between items-start mb-3">
@@ -733,6 +762,13 @@ function CasoDetalle() {
                                     <p className="text-sm text-gray-700">{evento.observacion}</p>
                                   </div>
                                 )}
+
+                                {/* Indicador de click */}
+                                <div className="mt-4 text-right">
+                                  <span className="text-xs text-gray-400 font-medium">
+                                    Click para ver más detalles →
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );
@@ -1114,6 +1150,150 @@ function CasoDetalle() {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Modal de Detalles del Evento */}
+      <Modal
+        isOpen={isEventoModalOpen}
+        onClose={() => setIsEventoModalOpen(false)}
+        title="Detalles del Evento"
+      >
+        {selectedEvento && (
+          <div className="p-6 space-y-6">
+            {/* Tipo de evento */}
+            <div className="flex items-center justify-between border-b pb-4">
+              <div>
+                <span
+                  className={`inline-block px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide ${
+                    selectedEvento.type === 'accion'
+                      ? 'bg-green-50 text-green-700'
+                      : selectedEvento.type === 'encuentro'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'bg-red-50 text-red-900'
+                  }`}
+                >
+                  {selectedEvento.type === 'accion'
+                    ? 'Acción Legal'
+                    : selectedEvento.type === 'encuentro'
+                      ? 'Encuentro / Cita'
+                      : 'Inicio del Caso'}
+                </span>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 font-medium">Fecha</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {selectedEvento.fecha.toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+
+            {/* Título */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Título
+              </h3>
+              <p className="text-xl font-bold text-gray-900">{selectedEvento.titulo}</p>
+            </div>
+
+            {/* Descripción */}
+            {selectedEvento.descripcion && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Descripción
+                </h3>
+                <p className="text-base text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
+                  {selectedEvento.descripcion}
+                </p>
+              </div>
+            )}
+
+            {/* Observación */}
+            {selectedEvento.observacion && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Observación
+                </h3>
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                  <p className="text-base text-gray-700 leading-relaxed">
+                    {selectedEvento.observacion}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Información adicional según tipo */}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              {selectedEvento.type === 'accion' && (
+                <>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">ID Acción</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedEvento.idAccion}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      Registrado por
+                    </p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedEvento.username || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      Fecha de ejecución
+                    </p>
+                    {selectedEvento.fechaEjecucion ? (
+                      <p className="text-sm font-medium text-green-700 bg-green-50 px-3 py-2 rounded inline-block">
+                        Ejecutada el{' '}
+                        {new Date(selectedEvento.fechaEjecucion).toLocaleDateString('es-ES')}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-orange-700 bg-orange-50 px-3 py-2 rounded inline-block">
+                        Acción No Ejecutada
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {selectedEvento.type === 'encuentro' && (
+                <>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      ID Encuentro
+                    </p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedEvento.idEncuentro}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      Fecha de Atención
+                    </p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {new Date(selectedEvento.fechaAtencion).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Caso N°</p>
+                <p className="text-sm font-medium text-red-900">{numCaso}</p>
+              </div>
+            </div>
+
+            {/* Botón de cerrar */}
+            <div className="flex justify-end pt-4 border-t">
+              <Button onClick={() => setIsEventoModalOpen(false)} variant="secondary">
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
