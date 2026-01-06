@@ -5,8 +5,8 @@ import {
   faComment,
   faClipboard,
   faPenToSquare,
-  faPaperPlane,
   faFolderOpen,
+  faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import HomeCard from '../components/HomeCard';
@@ -56,14 +56,14 @@ function Home() {
       path: '/solicitantes',
     },
     {
-      title: 'Tareas Pendientes',
+      title: 'Usuarios',
       icon: (
         <FontAwesomeIcon
-          icon={faPaperPlane}
+          icon={faUsers}
           className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem] 2xl:text-[11rem]"
         />
       ),
-      path: '/tareas-pendientes',
+      path: '/usuarios',
     },
     {
       title: 'Expedientes',

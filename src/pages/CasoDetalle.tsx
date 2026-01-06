@@ -570,7 +570,16 @@ function CasoDetalle() {
             {/* HISTORIAL TAB */}
             {activeTab === 'historial' && (
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">Línea de Tiempo del Caso</h3>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Línea de Tiempo del Caso</h3>
+                  <Button
+                    onClick={() => setIsAddAccionModalOpen(true)}
+                    variant="primary"
+                    size="sm"
+                  >
+                    <Plus size={16} className="mr-2" /> Registrar Acción
+                  </Button>
+                </div>
 
                 {(() => {
                   // Combinar todas las actividades en un solo array

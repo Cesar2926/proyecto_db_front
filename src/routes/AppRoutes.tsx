@@ -7,6 +7,7 @@ import CasoDetalle from '../pages/CasoDetalle';
 import Solicitantes from '../pages/Solicitantes';
 import RegistroCaso from '../pages/RegistroCaso';
 import SolicitanteDetalle from '../pages/SolicitanteDetalle';
+import UsuariosPage from '../pages/Usuarios';
 
 export default function AppRoutes() {
     return (
@@ -20,6 +21,7 @@ export default function AppRoutes() {
                 <Route path="/solicitantes" element={<Solicitantes />} />
                 <Route path="/solicitantes/:id" element={<SolicitanteDetalle />} />
                 <Route path="/registro-caso" element={<RegistroCaso />} />
+                <Route path="/usuarios" element={<UsuariosPage />} />
             </Route>
         </Routes>
     );
