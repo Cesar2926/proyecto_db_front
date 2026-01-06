@@ -8,11 +8,16 @@ import catalogoService from '../services/catalogoService';
 import Modal from '../components/common/Modal';
 import CustomSelect from '../components/common/CustomSelect';
 import Button from '../components/common/Button';
-// import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal'; 
+// import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import { Plus, Search, UserPlus, Pencil } from 'lucide-react';
 
-import type { CasoDetalleResponse, CasoResponse, BeneficiarioResponse, CasoUpdateRequest } from '../types/caso';
+import type {
+  CasoDetalleResponse,
+  CasoResponse,
+  BeneficiarioResponse,
+  CasoUpdateRequest,
+} from '../types/caso';
 import type { Tribunal } from '../types/catalogo';
 
 import type { SolicitanteResponse } from '../types/solicitante';
@@ -35,7 +40,9 @@ function CasoDetalle() {
   const [tribunales, setTribunales] = useState<Tribunal[]>([]);
 
   // UI State
-  const [activeTab, setActiveTab] = useState<'general' | 'beneficiarios' | 'historial' | 'documentos' | 'pruebas'>('general');
+  const [activeTab, setActiveTab] = useState<
+    'general' | 'beneficiarios' | 'historial' | 'documentos' | 'pruebas'
+  >('general');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddBeneficiarioModalOpen, setIsAddBeneficiarioModalOpen] = useState(false);
 
@@ -58,8 +65,15 @@ function CasoDetalle() {
         // 1. Fetch Case Details and Catalogs
         const [detalle, listaTribunales] = await Promise.all([
           casoService.getById(numCaso),
-          catalogoService.getTribunales().catch(() => []) // Silent fail for catalogs
+          catalogoService.getTribunales().catch(() => []), // Silent fail for catalogs
         ]);
+
+        console.log('📋 Detalle del caso completo:', detalle);
+        console.log('📊 Estructura del caso:', {
+          caso: detalle.caso,
+          beneficiarios: detalle.beneficiarios,
+          totalBeneficiarios: detalle.beneficiarios?.length || 0,
+        });
 
         setCasoDetalle(detalle);
         setTribunales(listaTribunales);
@@ -73,7 +87,7 @@ function CasoDetalle() {
             const nombreCompleto = `${sol.nombre} ${sol.apellido || ''}`.trim();
             setNombreSolicitante(nombreCompleto || detalle.caso.cedula);
           } catch (err) {
-            console.warn("No se pudo cargar info del solicitante", err);
+            console.warn('No se pudo cargar info del solicitante', err);
             setNombreSolicitante(detalle.caso.cedula);
           }
         }
@@ -81,7 +95,6 @@ function CasoDetalle() {
         // 3. Resolve Materia Name using Tree Search (Full Path)
         const materiaPath = await getFullAmbitoPath(detalle.caso.comAmbLegal);
         setMateriaNombre(materiaPath);
-
       } catch (err) {
         console.error('Error cargando caso:', err);
         setError('No se pudo cargar el caso. Verifique que exista.');
@@ -114,7 +127,7 @@ function CasoDetalle() {
     setEditFormData({
       sintesis: casoDetalle.caso.sintesis,
       idTribunal: casoDetalle.caso.idTribunal,
-      codCasoTribunal: casoDetalle.caso.codCasoTribunal || ''
+      codCasoTribunal: casoDetalle.caso.codCasoTribunal || '',
     });
     setIsEditModalOpen(true);
   };
@@ -127,14 +140,14 @@ function CasoDetalle() {
       const updatedCaso = { ...casoDetalle.caso, ...editFormData };
       // If Tribunal changed, update Name too
       if (editFormData.idTribunal) {
-        const trib = tribunales.find(t => t.idTribunal === editFormData.idTribunal);
+        const trib = tribunales.find((t) => t.idTribunal === editFormData.idTribunal);
         if (trib) updatedCaso.nombreTribunal = trib.nombreTribunal;
       }
       setCasoDetalle({ ...casoDetalle, caso: updatedCaso as CasoResponse });
       setIsEditModalOpen(false);
     } catch (err) {
-      console.error("Error updating caso", err);
-      alert("Error al actualizar el caso");
+      console.error('Error updating caso', err);
+      alert('Error al actualizar el caso');
     }
   };
 
@@ -149,20 +162,20 @@ function CasoDetalle() {
       const [solicitanteData, casoData] = await Promise.all([
         solicitanteService.getByCedula(cedula),
         // We need current relationship data. We can find it in 'beneficiarios' state
-        Promise.resolve(casoDetalle?.beneficiarios?.find(b => b.cedula === cedula))
+        Promise.resolve(casoDetalle?.beneficiarios?.find((b) => b.cedula === cedula)),
       ]);
 
       setEditingBeneficiario(solicitanteData);
       if (casoData) {
         setEditingRelacion({
           parentesco: casoData.parentesco,
-          tipoBeneficiario: casoData.tipoBeneficiario
+          tipoBeneficiario: casoData.tipoBeneficiario,
         });
       }
       setIsEditBeneficiarioModalOpen(true);
     } catch (e) {
-      console.error("Error cargando beneficiario", e);
-      alert("No se pudo cargar la información del beneficiario");
+      console.error('Error cargando beneficiario', e);
+      alert('No se pudo cargar la información del beneficiario');
     } finally {
       setLoading(false);
     }
@@ -193,10 +206,12 @@ function CasoDetalle() {
       nombre: newBen.nombre || '',
       parentesco: newBen.parentesco,
       tipoBeneficiario: newBen.tipoBeneficiario,
-      numCaso: numCaso
+      numCaso: numCaso,
     };
 
-    const newBeneficiarios = casoDetalle.beneficiarios ? [...casoDetalle.beneficiarios, addedBen] : [addedBen];
+    const newBeneficiarios = casoDetalle.beneficiarios
+      ? [...casoDetalle.beneficiarios, addedBen]
+      : [addedBen];
     setCasoDetalle({ ...casoDetalle, beneficiarios: newBeneficiarios });
 
     // Reset modal state
@@ -231,7 +246,7 @@ function CasoDetalle() {
       cedula: foundPerson.cedula,
       nombre: foundPerson.nombre, // Se envía para UI optimista, backend lo saca de DB
       parentesco: newBenParentesco,
-      tipoBeneficiario: newBenTipo
+      tipoBeneficiario: newBenTipo,
     };
     await handleAddBeneficiarioInternal(newBen);
   };
@@ -258,8 +273,13 @@ function CasoDetalle() {
         <Header title="Error" onMenuClick={handleMenuClick} />
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center p-8 bg-white rounded-lg shadow-md">
-            <p className="text-red-600 text-xl font-semibold mb-4">{error || 'Caso no encontrado'}</p>
-            <button onClick={() => navigate('/casos')} className="px-6 py-2 bg-red-900 text-white rounded hover:bg-red-800 transition-colors">
+            <p className="text-red-600 text-xl font-semibold mb-4">
+              {error || 'Caso no encontrado'}
+            </p>
+            <button
+              onClick={() => navigate('/casos')}
+              className="px-6 py-2 bg-red-900 text-white rounded hover:bg-red-800 transition-colors"
+            >
               Volver a la lista
             </button>
           </div>
@@ -277,18 +297,26 @@ function CasoDetalle() {
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20">
         <div className="max-w-6xl mx-auto space-y-6">
-
           {/* Top Bar with Back & Actions */}
           <div className="flex justify-between items-center">
             <button
               onClick={() => navigate('/casos')}
               className="flex items-center text-gray-600 hover:text-red-900 transition-colors font-medium"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
               Volver
             </button>
             <div className="flex gap-2">
-              <span className={`px-4 py-1 rounded-full text-sm font-semibold border ${caso.estatus === 'ABIERTO' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+              <span
+                className={`px-4 py-1 rounded-full text-sm font-semibold border ${caso.estatus === 'ABIERTO' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}`}
+              >
                 {caso.estatus}
               </span>
             </div>
@@ -310,15 +338,24 @@ function CasoDetalle() {
             {/* Información del Solicitante Expandida */}
             {solicitante && (
               <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Datos del Solicitante</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  Datos del Solicitante
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="block text-xs text-gray-500">Teléfono</span>
-                    <span className="text-sm font-medium text-gray-900">{solicitante.telfCelular || solicitante.telfCasa || 'N/A'}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {solicitante.telfCelular || solicitante.telfCasa || 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="block text-xs text-gray-500">Correo</span>
-                    <span className="text-sm font-medium text-gray-900 truncate" title={solicitante.email}>{solicitante.email || 'N/A'}</span>
+                    <span
+                      className="text-sm font-medium text-gray-900 truncate"
+                      title={solicitante.email}
+                    >
+                      {solicitante.email || 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="block text-xs text-gray-500">Edad / Estado Civil</span>
@@ -326,22 +363,27 @@ function CasoDetalle() {
                       {calculateAge(solicitante.fechaNacimiento)} años, {solicitante.estadoCivil}
                     </span>
                   </div>
-
                 </div>
               </div>
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
               <div>
-                <span className="block text-xs text-gray-500 uppercase tracking-wide">Fecha Recepción</span>
-                <span className="text-sm font-medium">{new Date(caso.fechaRecepcion).toLocaleDateString()}</span>
+                <span className="block text-xs text-gray-500 uppercase tracking-wide">
+                  Fecha Recepción
+                </span>
+                <span className="text-sm font-medium">
+                  {new Date(caso.fechaRecepcion).toLocaleDateString()}
+                </span>
               </div>
               <div>
                 <span className="block text-xs text-gray-500 uppercase tracking-wide">Trámite</span>
                 <span className="text-sm font-medium">{caso.tramite}</span>
               </div>
               <div>
-                <span className="block text-xs text-gray-500 uppercase tracking-wide">Asignado a</span>
+                <span className="block text-xs text-gray-500 uppercase tracking-wide">
+                  Asignado a
+                </span>
                 <span className="text-sm font-medium">{caso.username || 'Sin asignar'}</span>
               </div>
               <div>
@@ -354,12 +396,20 @@ function CasoDetalle() {
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <span className="block text-xs text-gray-500 uppercase tracking-wide">Tribunal</span>
-                    <span className="text-sm font-medium text-gray-900">{caso.nombreTribunal || 'No asignado'}</span>
+                    <span className="block text-xs text-gray-500 uppercase tracking-wide">
+                      Tribunal
+                    </span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {caso.nombreTribunal || 'No asignado'}
+                    </span>
                   </div>
                   <div>
-                    <span className="block text-xs text-gray-500 uppercase tracking-wide">N° Expediente / Causa</span>
-                    <span className="text-sm font-medium text-gray-900">{caso.codCasoTribunal || 'No registrado'}</span>
+                    <span className="block text-xs text-gray-500 uppercase tracking-wide">
+                      N° Expediente / Causa
+                    </span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {caso.codCasoTribunal || 'No registrado'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -374,16 +424,18 @@ function CasoDetalle() {
                 { id: 'beneficiarios', label: 'Beneficiarios' },
                 { id: 'historial', label: 'Historial' },
                 { id: 'pruebas', label: 'Pruebas' },
-                ...(caso.codCasoTribunal ? [{ id: 'documentos', label: 'Documentos' }] : [])
+                ...(caso.codCasoTribunal ? [{ id: 'documentos', label: 'Documentos' }] : []),
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`
                                 py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors
-                                ${activeTab === tab.id
-                      ? 'border-red-900 text-red-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+                                ${
+                                  activeTab === tab.id
+                                    ? 'border-red-900 text-red-900'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }
                             `}
                 >
                   {tab.label}
@@ -394,7 +446,6 @@ function CasoDetalle() {
 
           {/* Content Area */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[400px]">
-
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
               <div className="p-6">
@@ -412,7 +463,9 @@ function CasoDetalle() {
                 </p>
 
                 <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Información de Tribunal</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Información de Tribunal
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gray-50 p-3 rounded">
                       <div className="text-xs text-gray-500">Tribunal</div>
@@ -424,7 +477,6 @@ function CasoDetalle() {
                     </div>
                   </div>
                 </div>
-
               </div>
             )}
 
@@ -432,7 +484,9 @@ function CasoDetalle() {
             {activeTab === 'beneficiarios' && (
               <div className="p-6">
                 <div className="mb-4 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Beneficiarios ({beneficiarios?.length || 0})</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Beneficiarios ({beneficiarios?.length || 0})
+                  </h3>
                   <Button
                     onClick={() => setIsAddBeneficiarioModalOpen(true)}
                     variant="primary"
@@ -441,25 +495,39 @@ function CasoDetalle() {
                     <Plus size={16} className="mr-2" /> Agregar
                   </Button>
                 </div>
-                {(!beneficiarios || beneficiarios.length === 0) ? (
+                {!beneficiarios || beneficiarios.length === 0 ? (
                   <p className="text-gray-500 italic">No hay beneficiarios registrados.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cédula</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parentesco</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Cédula
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Parentesco
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tipo
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Acciones
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {beneficiarios.map((ben) => (
                           <tr key={ben.cedula}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ben.cedula}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ben.parentesco}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ben.tipoBeneficiario}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {ben.cedula}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {ben.parentesco}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {ben.tipoBeneficiario}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                               <button
                                 onClick={() => handleEditBeneficiario(ben.cedula)}
@@ -480,50 +548,171 @@ function CasoDetalle() {
 
             {/* HISTORIAL TAB */}
             {activeTab === 'historial' && (
-              <div className="p-6 space-y-8">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Línea de Tiempo del Caso</h3>
 
-                {/* Encounter Section */}
-                <section>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 border-l-4 border-blue-500 pl-3">Encuentros / Citas</h3>
-                  {(!encuentros || encuentros.length === 0) ? (
-                    <p className="text-gray-500 text-sm ml-4">No hay encuentros registrados.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {encuentros.map(enc => (
-                        <div key={enc.idEncuentro} className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded uppercase">Cita</span>
-                            <span className="text-sm text-gray-500">{new Date(enc.fechaAtencion).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-gray-800 font-medium mb-1">{enc.orientacion}</p>
-                          {enc.observacion && <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{enc.observacion}</p>}
-                        </div>
-                      ))}
+                {(() => {
+                  // Combinar todas las actividades en un solo array
+                  const timeline: Array<{
+                    id: string;
+                    type: 'accion' | 'encuentro' | 'inicio';
+                    fecha: Date;
+                    titulo: string;
+                    descripcion?: string;
+                    observacion?: string;
+                  }> = [];
+
+                  // Agregar acciones
+                  if (acciones && acciones.length > 0) {
+                    acciones.forEach((acc) => {
+                      timeline.push({
+                        id: `accion-${acc.idAccion}`,
+                        type: 'accion',
+                        fecha: new Date(acc.fechaRegistro),
+                        titulo: acc.titulo,
+                        descripcion: acc.descripcion,
+                      });
+                    });
+                  }
+
+                  // Agregar encuentros
+                  if (encuentros && encuentros.length > 0) {
+                    encuentros.forEach((enc) => {
+                      timeline.push({
+                        id: `encuentro-${enc.idEncuentro}`,
+                        type: 'encuentro',
+                        fecha: new Date(enc.fechaAtencion),
+                        titulo: enc.orientacion,
+                        observacion: enc.observacion,
+                      });
+                    });
+                  }
+
+                  // Agregar evento inicial del caso
+                  timeline.push({
+                    id: 'inicio-caso',
+                    type: 'inicio',
+                    fecha: new Date(caso.fechaRecepcion),
+                    titulo: 'Caso Registrado',
+                    descripcion: `Caso ${caso.numCaso} ingresado al sistema`,
+                  });
+
+                  // Ordenar por fecha (más reciente primero)
+                  timeline.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+
+                  // Si no hay eventos, mostrar mensaje
+                  if (timeline.length === 0) {
+                    return (
+                      <p className="text-gray-500 italic text-center py-12">
+                        No hay eventos registrados en el historial.
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <div className="relative">
+                      {/* Línea vertical */}
+                      <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-linear-to-b from-red-900 via-red-600 to-gray-300"></div>
+
+                      {/* Eventos de la línea de tiempo */}
+                      <div className="space-y-6">
+                        {timeline.map((evento, index) => {
+                          const isLast = index === timeline.length - 1;
+
+                          // Colores y estilos según tipo
+                          const typeStyles = {
+                            accion: {
+                              bgColor: 'bg-red-900',
+                              borderColor: 'border-green-200',
+                              textColor: 'text-green-700',
+                              badgeBg: 'bg-green-50',
+                              badgeText: 'text-green-700',
+                              label: 'Acción Legal',
+                            },
+                            encuentro: {
+                              bgColor: 'bg-red-900',
+                              borderColor: 'border-blue-200',
+                              textColor: 'text-blue-700',
+                              badgeBg: 'bg-blue-50',
+                              badgeText: 'text-blue-700',
+                              label: 'Encuentro / Cita',
+                            },
+                            inicio: {
+                              bgColor: 'bg-red-900',
+                              borderColor: 'border-red-200',
+                              textColor: 'text-red-900',
+                              badgeBg: 'bg-red-50',
+                              badgeText: 'text-red-900',
+                              label: 'Inicio del Caso',
+                            },
+                          };
+
+                          const style = typeStyles[evento.type];
+                          const isFirst = index === 0;
+
+                          return (
+                            <div
+                              key={evento.id}
+                              className={`relative ${isFirst ? 'pl-20' : 'pl-16'} pb-6`}
+                            >
+                              {/* Círculo en la línea */}
+                              <div
+                                className={`absolute top-8 ${
+                                  isFirst ? 'w-12 h-12 left-2' : 'w-8 h-8 left-4'
+                                } rounded-full ${style.bgColor} border-4 border-white shadow-lg flex items-center justify-center z-10 transition-all`}
+                              ></div>
+
+                              {/* Tarjeta de contenido */}
+                              <div
+                                className={`bg-white rounded-lg shadow-md border-l-4 ${style.borderColor} p-5 hover:shadow-lg transition-shadow ${
+                                  isLast ? 'opacity-80' : ''
+                                }`}
+                              >
+                                {/* Header */}
+                                <div className="flex justify-between items-start mb-3">
+                                  <span
+                                    className={`text-xs font-bold ${style.badgeBg} ${style.badgeText} px-3 py-1 rounded-full uppercase tracking-wide`}
+                                  >
+                                    {style.label}
+                                  </span>
+                                  <span className="text-sm text-gray-500 font-medium">
+                                    {evento.fecha.toLocaleDateString('es-ES', {
+                                      day: 'numeric',
+                                      month: 'long',
+                                      year: 'numeric',
+                                    })}
+                                  </span>
+                                </div>
+
+                                {/* Título */}
+                                <h4 className={`font-bold text-lg ${style.textColor} mb-2`}>
+                                  {evento.titulo}
+                                </h4>
+
+                                {/* Descripción */}
+                                {evento.descripcion && (
+                                  <p className="text-gray-700 text-sm leading-relaxed">
+                                    {evento.descripcion}
+                                  </p>
+                                )}
+
+                                {/* Observación */}
+                                {evento.observacion && (
+                                  <div className="mt-3 bg-gray-50 border border-gray-200 rounded p-3">
+                                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                                      Observación:
+                                    </p>
+                                    <p className="text-sm text-gray-700">{evento.observacion}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  )}
-                </section>
-
-                {/* Actions Section */}
-                <section>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 border-l-4 border-green-500 pl-3">Acciones Legales</h3>
-                  {(!acciones || acciones.length === 0) ? (
-                    <p className="text-gray-500 text-sm ml-4">No hay acciones registradas.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {acciones.map(acc => (
-                        <div key={acc.idAccion} className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded uppercase">Acción</span>
-                            <span className="text-sm text-gray-500">{new Date(acc.fechaRegistro).toLocaleDateString()}</span>
-                          </div>
-                          <h4 className="font-semibold text-gray-900">{acc.titulo}</h4>
-                          <p className="text-gray-600 text-sm mt-1">{acc.descripcion}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-
+                  );
+                })()}
               </div>
             )}
 
@@ -533,15 +722,22 @@ function CasoDetalle() {
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Pruebas del Caso</h3>
                 </div>
-                {(!casoDetalle.pruebas || casoDetalle.pruebas.length === 0) ? (
+                {!casoDetalle.pruebas || casoDetalle.pruebas.length === 0 ? (
                   <p className="text-gray-500 italic">No hay pruebas registradas.</p>
                 ) : (
                   <ul className="space-y-4">
                     {casoDetalle.pruebas.map((prueba) => (
-                      <li key={prueba.idPrueba} className="bg-white p-4 border rounded-lg shadow-sm">
+                      <li
+                        key={prueba.idPrueba}
+                        className="bg-white p-4 border rounded-lg shadow-sm"
+                      >
                         <h4 className="font-medium text-gray-900">{prueba.titulo}</h4>
                         <p className="text-sm text-gray-600 mt-1">{prueba.documento}</p>
-                        {prueba.observacion && <p className="text-xs text-gray-500 italic mt-2">Nota: {prueba.observacion}</p>}
+                        {prueba.observacion && (
+                          <p className="text-xs text-gray-500 italic mt-2">
+                            Nota: {prueba.observacion}
+                          </p>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -550,28 +746,55 @@ function CasoDetalle() {
             )}
 
             {/* DOCUMENTS TAB */}
-            {(activeTab === 'documentos' && caso.codCasoTribunal) && (
+            {activeTab === 'documentos' && caso.codCasoTribunal && (
               <div className="p-6">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Documentos del Expediente en Tribunal</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Documentos del Expediente en Tribunal
+                  </h3>
                 </div>
-                {(!documentos || documentos.length === 0) ? (
+                {!documentos || documentos.length === 0 ? (
                   <p className="text-gray-500 italic">No hay documentos cargados.</p>
                 ) : (
                   <ul className="divide-y divide-gray-200 border rounded-lg overflow-hidden">
                     {documentos.map((doc) => (
-                      <li key={doc.idDocumento} className="p-4 bg-white hover:bg-gray-50 flex items-center justify-between">
+                      <li
+                        key={doc.idDocumento}
+                        className="p-4 bg-white hover:bg-gray-50 flex items-center justify-between"
+                      >
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-red-50 text-red-700 rounded-lg">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">{doc.titulo}</p>
                             <div className="flex gap-2 text-xs text-gray-500 mt-1">
-                              <span>Registrado: {new Date(doc.fechaRegistro).toLocaleDateString()}</span>
-                              {doc.folioIni && <span>Folios: {doc.folioIni} - {doc.folioFin}</span>}
+                              <span>
+                                Registrado: {new Date(doc.fechaRegistro).toLocaleDateString()}
+                              </span>
+                              {doc.folioIni && (
+                                <span>
+                                  Folios: {doc.folioIni} - {doc.folioFin}
+                                </span>
+                              )}
                             </div>
-                            {doc.observacion && <p className="text-xs text-gray-500 mt-1 italic">"{doc.observacion}"</p>}
+                            {doc.observacion && (
+                              <p className="text-xs text-gray-500 mt-1 italic">
+                                "{doc.observacion}"
+                              </p>
+                            )}
                           </div>
                         </div>
                         {/* Action buttons could go here */}
@@ -581,7 +804,6 @@ function CasoDetalle() {
                 )}
               </div>
             )}
-
           </div>
         </div>
       </main>
@@ -599,29 +821,37 @@ function CasoDetalle() {
                 {/*  Relationship Form Section - Only shown here */}
                 <div className="px-6 pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Parentesco</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Parentesco
+                    </label>
                     <CustomSelect
                       options={[
-                        { value: "", label: "Seleccione..." },
-                        { value: "Hijo", label: "Hijo/a" },
-                        { value: "Padre", label: "Padre/Madre" },
-                        { value: "Esposo", label: "Esposo/a" },
-                        { value: "Hermano", label: "Hermano/a" },
-                        { value: "Otro", label: "Otro" }
+                        { value: '', label: 'Seleccione...' },
+                        { value: 'Hijo', label: 'Hijo/a' },
+                        { value: 'Padre', label: 'Padre/Madre' },
+                        { value: 'Esposo', label: 'Esposo/a' },
+                        { value: 'Hermano', label: 'Hermano/a' },
+                        { value: 'Otro', label: 'Otro' },
                       ]}
                       value={editingRelacion.parentesco}
-                      onChange={(val) => setEditingRelacion({ ...editingRelacion, parentesco: String(val) })}
+                      onChange={(val) =>
+                        setEditingRelacion({ ...editingRelacion, parentesco: String(val) })
+                      }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo Beneficiario</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tipo Beneficiario
+                    </label>
                     <CustomSelect
                       options={[
-                        { value: "Directo", label: "Directo" },
-                        { value: "Indirecto", label: "Indirecto" }
+                        { value: 'Directo', label: 'Directo' },
+                        { value: 'Indirecto', label: 'Indirecto' },
                       ]}
                       value={editingRelacion.tipoBeneficiario}
-                      onChange={(val) => setEditingRelacion({ ...editingRelacion, tipoBeneficiario: String(val) })}
+                      onChange={(val) =>
+                        setEditingRelacion({ ...editingRelacion, tipoBeneficiario: String(val) })
+                      }
                     />
                   </div>
                 </div>
@@ -637,12 +867,14 @@ function CasoDetalle() {
                         try {
                           await casoService.updateBeneficiario(numCaso, updatedSolicitante.cedula, {
                             tipoBeneficiario: editingRelacion.tipoBeneficiario,
-                            parentesco: editingRelacion.parentesco
+                            parentesco: editingRelacion.parentesco,
                           });
                           handleEditBeneficiarioSuccess();
                         } catch (err) {
-                          console.error("Error updating relationship", err);
-                          alert("Datos personales guardados, pero hubo un error actualizando la relación con el caso.");
+                          console.error('Error updating relationship', err);
+                          alert(
+                            'Datos personales guardados, pero hubo un error actualizando la relación con el caso.'
+                          );
                         }
                       }
                     }}
@@ -676,37 +908,42 @@ function CasoDetalle() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tribunal Asignado</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tribunal Asignado
+              </label>
               <CustomSelect
-                options={[{ value: '', label: 'Sin Asignar' }, ...tribunales.map(t => ({ value: t.idTribunal, label: t.nombreTribunal }))]}
+                options={[
+                  { value: '', label: 'Sin Asignar' },
+                  ...tribunales.map((t) => ({ value: t.idTribunal, label: t.nombreTribunal })),
+                ]}
                 value={editFormData.idTribunal || ''}
-                onChange={(val) => setEditFormData({ ...editFormData, idTribunal: val ? Number(val) : undefined })}
+                onChange={(val) =>
+                  setEditFormData({ ...editFormData, idTribunal: val ? Number(val) : undefined })
+                }
                 placeholder="Seleccione tribunal"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">N° Expediente / Causa</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                N° Expediente / Causa
+              </label>
               <input
                 type="text"
                 className="w-full border rounded-lg p-2 focus:ring-red-900 focus:border-red-900"
                 value={editFormData.codCasoTribunal || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, codCasoTribunal: e.target.value })}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, codCasoTribunal: e.target.value })
+                }
                 placeholder="Ej: ABC-123456"
               />
             </div>
           </div>
 
           <div className="pt-4 flex justify-end gap-2">
-            <Button
-              onClick={() => setIsEditModalOpen(false)}
-              variant="secondary"
-            >
+            <Button onClick={() => setIsEditModalOpen(false)} variant="secondary">
               Cancelar
             </Button>
-            <Button
-              onClick={handleUpdate}
-              variant="primary"
-            >
+            <Button onClick={handleUpdate} variant="primary">
               Guardar Cambios
             </Button>
           </div>
@@ -730,7 +967,7 @@ function CasoDetalle() {
             Al estar dentro de un modal blank, queremos que se vea integrado.
             Mejor opción: container simple p-6 para búsqueda, y para form quizás p-0 y dejar que el form se encargue.
         */}
-        <div className={!showSolicitanteForm ? "p-6 space-y-4" : ""}>
+        <div className={!showSolicitanteForm ? 'p-6 space-y-4' : ''}>
           {!showSolicitanteForm ? (
             <>
               {/* Search Section */}
@@ -751,7 +988,12 @@ function CasoDetalle() {
               {searchError && (
                 <div className="text-red-500 text-sm flex justify-between items-center text-center p-2 bg-red-50 rounded border border-red-100">
                   <span>{searchError}</span>
-                  <Button onClick={() => setShowSolicitanteForm(true)} variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                  <Button
+                    onClick={() => setShowSolicitanteForm(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                  >
                     <UserPlus size={16} className="mr-1" /> Registrar Nuevo
                   </Button>
                 </div>
@@ -760,31 +1002,37 @@ function CasoDetalle() {
               {/* Found Person & Form */}
               {foundPerson && (
                 <div className="bg-green-50 p-4 rounded-lg border border-green-100 shadow-sm animate-fade-in">
-                  <p className="font-semibold text-green-900 mb-2">Persona encontrada: {foundPerson.nombre} ({foundPerson.cedula})</p>
+                  <p className="font-semibold text-green-900 mb-2">
+                    Persona encontrada: {foundPerson.nombre} ({foundPerson.cedula})
+                  </p>
 
                   <div className="mt-4 grid grid-cols-1 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Parentesco con solicitante</label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Parentesco con solicitante
+                      </label>
                       <CustomSelect
                         options={[
-                          { value: "", label: "Seleccione..." },
-                          { value: "Hijo", label: "Hijo/a" },
-                          { value: "Padre", label: "Padre/Madre" },
-                          { value: "Esposo", label: "Esposo/a" },
-                          { value: "Hermano", label: "Hermano/a" },
-                          { value: "Otro", label: "Otro" }
+                          { value: '', label: 'Seleccione...' },
+                          { value: 'Hijo', label: 'Hijo/a' },
+                          { value: 'Padre', label: 'Padre/Madre' },
+                          { value: 'Esposo', label: 'Esposo/a' },
+                          { value: 'Hermano', label: 'Hermano/a' },
+                          { value: 'Otro', label: 'Otro' },
                         ]}
                         value={newBenParentesco}
                         onChange={(val) => setNewBenParentesco(val)}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Tipo de Beneficiario</label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Tipo de Beneficiario
+                      </label>
                       <CustomSelect
                         options={[
-                          { value: "", label: "Seleccione..." },
-                          { value: "Directo", label: "Directo" },
-                          { value: "Indirecto", label: "Indirecto" }
+                          { value: '', label: 'Seleccione...' },
+                          { value: 'Directo', label: 'Directo' },
+                          { value: 'Indirecto', label: 'Indirecto' },
                         ]}
                         value={newBenTipo}
                         onChange={(val) => setNewBenTipo(val)}
@@ -809,9 +1057,16 @@ function CasoDetalle() {
             <div>
               <div className="flex justify-between items-center mb-0 p-4 border-b bg-gray-50">
                 <h4 className="font-semibold text-gray-800">Registrar Nueva Persona</h4>
-                <button onClick={() => setShowSolicitanteForm(false)} className="text-gray-500 hover:text-gray-700 text-sm font-medium">Volver</button>
+                <button
+                  onClick={() => setShowSolicitanteForm(false)}
+                  className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+                >
+                  Volver
+                </button>
               </div>
-              <div className="p-0"> {/* SolicitanteForm has its own padding but inside a card. We might want to strip card styles if possible or just let it be. */}
+              <div className="p-0">
+                {' '}
+                {/* SolicitanteForm has its own padding but inside a card. We might want to strip card styles if possible or just let it be. */}
                 <SolicitanteForm
                   onSuccess={handleNewPersonSuccess}
                   onCancel={() => setShowSolicitanteForm(false)}
@@ -825,8 +1080,7 @@ function CasoDetalle() {
           )}
         </div>
       </Modal>
-
-    </div >
+    </div>
   );
 }
 
