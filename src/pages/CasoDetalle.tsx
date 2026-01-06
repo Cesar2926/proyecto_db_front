@@ -10,6 +10,7 @@ import CustomSelect from '../components/common/CustomSelect';
 import Button from '../components/common/Button';
 // import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import AddAccionModal from '../components/modals/AddAccionModal';
+import AddEncuentroModal from '../components/modals/AddEncuentroModal';
 // import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import { Plus, Search, UserPlus, Pencil } from 'lucide-react';
@@ -74,6 +75,9 @@ function CasoDetalle() {
 
   // Accion State
   const [isAddAccionModalOpen, setIsAddAccionModalOpen] = useState(false);
+
+  // Encuentro State
+  const [isAddEncuentroModalOpen, setIsAddEncuentroModalOpen] = useState(false);
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState<CasoUpdateRequest>({});
@@ -286,6 +290,19 @@ function CasoDetalle() {
     } catch (err) {
       console.error('Error adding accion', err);
       alert('Error al registrar la acción');
+    }
+  };
+
+  const handleAddEncuentro = async (data: any) => {
+    if (!numCaso || !casoDetalle) return;
+    try {
+      await casoService.createEncuentro(numCaso, data);
+      // Refresh data
+      const updated = await casoService.getById(numCaso);
+      setCasoDetalle(updated);
+    } catch (err) {
+      console.error('Error adding encuentro', err);
+      alert('Error al registrar el encuentro');
     }
   };
 
@@ -581,13 +598,22 @@ function CasoDetalle() {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-900">Línea de Tiempo del Caso</h3>
-                  <Button
-                    onClick={() => setIsAddAccionModalOpen(true)}
-                    variant="primary"
-                    size="sm"
-                  >
-                    <Plus size={16} className="mr-2" /> Registrar Acción
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setIsAddEncuentroModalOpen(true)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      <Plus size={16} className="mr-2" /> Registrar Cita
+                    </Button>
+                    <Button
+                      onClick={() => setIsAddAccionModalOpen(true)}
+                      variant="primary"
+                      size="sm"
+                    >
+                      <Plus size={16} className="mr-2" /> Registrar Acción
+                    </Button>
+                  </div>
                 </div>
 
                 {(() => {
@@ -606,6 +632,7 @@ function CasoDetalle() {
                     // Campos adicionales para encuentros
                     idEncuentro?: number;
                     fechaAtencion?: string;
+                    fechaProxima?: string;
                   }> = [];
 
                   // Agregar acciones
@@ -637,6 +664,7 @@ function CasoDetalle() {
                         // Datos adicionales del encuentro
                         idEncuentro: enc.idEncuentro,
                         fechaAtencion: enc.fechaAtencion,
+                        fechaProxima: enc.fechaProxima,
                       });
                     });
                   }
@@ -742,9 +770,21 @@ function CasoDetalle() {
                                 </div>
 
                                 {/* Título */}
-                                <h4 className={`font-bold text-lg ${style.textColor} mb-2`}>
-                                  {evento.titulo}
-                                </h4>
+                                <div className="mb-2">
+                                  <h4 className={`font-bold text-lg ${style.textColor} inline`}>
+                                    {evento.titulo}
+                                  </h4>
+                                  {/* Badge para cita próxima programada */}
+                                  {evento.type === 'encuentro' && evento.fechaProxima && (
+                                    <span className="ml-3 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
+                                      📅 Próxima:{' '}
+                                      {new Date(evento.fechaProxima).toLocaleDateString('es-ES', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
 
                                 {/* Descripción */}
                                 {evento.descripcion && (
@@ -957,6 +997,13 @@ function CasoDetalle() {
         isOpen={isAddAccionModalOpen}
         onClose={() => setIsAddAccionModalOpen(false)}
         onSuccess={handleAddAccion}
+        defaultUsername={casoDetalle.caso.username}
+      />
+
+      <AddEncuentroModal
+        isOpen={isAddEncuentroModalOpen}
+        onClose={() => setIsAddEncuentroModalOpen(false)}
+        onSuccess={handleAddEncuentro}
         defaultUsername={casoDetalle.caso.username}
       />
 
@@ -1271,12 +1318,45 @@ function CasoDetalle() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                      Tipo de Encuentro
+                    </p>
+                    {selectedEvento.fechaProxima ? (
+                      <p className="text-sm font-medium text-blue-700 bg-blue-50 px-3 py-2 rounded inline-block">
+                        Cita Programada
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-gray-700 bg-gray-50 px-3 py-2 rounded inline-block">
+                        Encuentro Realizado
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
                       Fecha de Atención
                     </p>
                     <p className="text-sm font-medium text-gray-900">
-                      {new Date(selectedEvento.fechaAtencion).toLocaleDateString('es-ES')}
+                      {new Date(selectedEvento.fechaAtencion).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
                     </p>
                   </div>
+                  {selectedEvento.fechaProxima && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                        Próxima Cita Programada
+                      </p>
+                      <p className="text-sm font-medium text-blue-700 bg-blue-50 px-3 py-2 rounded inline-block">
+                        {' '}
+                        {new Date(selectedEvento.fechaProxima).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 

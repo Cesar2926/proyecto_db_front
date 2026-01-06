@@ -1,5 +1,5 @@
 import api from './api';
-import type { CasoCreateRequest, CasoDetalleResponse, CasoSummary, AccionCreateRequest } from '../types/caso';
+import type { CasoCreateRequest, CasoDetalleResponse, CasoSummary, AccionCreateRequest, EncuentroCreateRequest } from '../types/caso';
 
 const casoService = {
     create: async (data: CasoCreateRequest): Promise<CasoDetalleResponse> => {
@@ -21,6 +21,10 @@ const casoService = {
 
     createAccion: async (id: string, data: AccionCreateRequest): Promise<void> => {
         await api.post(`/casos/${id}/acciones`, data);
+    },
+
+    createEncuentro: async (id: string, data: EncuentroCreateRequest): Promise<void> => {
+        await api.post(`/casos/${id}/encuentros`, data);
     },
 
     getAll: async (estatus?: string, username?: string, termino?: string): Promise<CasoSummary[]> => {
