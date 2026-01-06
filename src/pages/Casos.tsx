@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { faFilter } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faPlus } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
 import CasoRow from '../components/CasoRow';
@@ -222,6 +222,16 @@ function CasosPage() {
                 icon={faFilter}
               >
                 {onlyMyCases ? 'Mis Casos' : 'Todos'}
+              </Button>
+
+              {/* Botón Registrar Caso */}
+              <Button
+                variant="primary"
+                onClick={() => navigate('/registro-caso')}
+                className="gap-2"
+                icon={faPlus}
+              >
+                Registrar Caso
               </Button>
 
             </div>

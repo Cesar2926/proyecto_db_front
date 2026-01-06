@@ -19,6 +19,7 @@ import type {
   CasoResponse,
   BeneficiarioResponse,
   CasoUpdateRequest,
+  AccionCreateRequest,
 } from '../types/caso';
 import type { Tribunal } from '../types/catalogo';
 
@@ -452,11 +453,10 @@ function CasoDetalle() {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`
                                 py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors
-                                ${
-                                  activeTab === tab.id
-                                    ? 'border-red-900 text-red-900'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }
+                                ${activeTab === tab.id
+                      ? 'border-red-900 text-red-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }
                             `}
                 >
                   {tab.label}
@@ -678,16 +678,14 @@ function CasoDetalle() {
                             >
                               {/* Círculo en la línea */}
                               <div
-                                className={`absolute top-8 ${
-                                  isFirst ? 'w-12 h-12 left-2' : 'w-8 h-8 left-4'
-                                } rounded-full ${style.bgColor} border-4 border-white shadow-lg flex items-center justify-center z-10 transition-all`}
+                                className={`absolute top-8 ${isFirst ? 'w-12 h-12 left-2' : 'w-8 h-8 left-4'
+                                  } rounded-full ${style.bgColor} border-4 border-white shadow-lg flex items-center justify-center z-10 transition-all`}
                               ></div>
 
                               {/* Tarjeta de contenido */}
                               <div
-                                className={`bg-white rounded-lg shadow-md border-l-4 ${style.borderColor} p-5 hover:shadow-lg transition-shadow ${
-                                  isLast ? 'opacity-80' : ''
-                                }`}
+                                className={`bg-white rounded-lg shadow-md border-l-4 ${style.borderColor} p-5 hover:shadow-lg transition-shadow ${isLast ? 'opacity-80' : ''
+                                  }`}
                               >
                                 {/* Header */}
                                 <div className="flex justify-between items-start mb-3">
