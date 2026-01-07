@@ -45,7 +45,7 @@ function CaseCard({ numCaso, materia, cedula, nombre, fecha, estatus, sintesis, 
     <div
       onClick={onClick}
       // Height fixed to mimic the reference image ratio
-      className="group cursor-pointer bg-white relative shadow-md hover:shadow-xl transition-all duration-300 h-[380px] w-full flex flex-col rounded-sm overflow-hidden"
+      className="group cursor-pointer bg-white relative shadow-md hover:shadow-xl transition-all duration-300 h-[340px] w-full flex flex-col rounded-sm overflow-hidden"
     >
       {/* 1. Left Vertical Red Bar */}
       <div className="absolute left-0 top-0 bottom-0 w-3 bg-red-900 group-hover:w-4 transition-all duration-300"></div>
@@ -62,19 +62,23 @@ function CaseCard({ numCaso, materia, cedula, nombre, fecha, estatus, sintesis, 
         </div>
 
         {/* 3. Title: Name */}
-        <h2 className="text-2xl font-black text-gray-900 leading-tight mb-1 line-clamp-2">
-          {nombre}
-        </h2>
+        <div className="h-[64px] mb-1 flex items-center">
+          <h2 className="text-2xl font-black text-gray-900 leading-tight line-clamp-2 w-full">
+            {nombre}
+          </h2>
+        </div>
 
         {/* Requirements: Materia (Ambito Legal) below name */}
-        <p className="text-xs font-bold text-red-900 uppercase tracking-widest mb-3">
-          {materia}
-        </p>
+        <div className="h-[32px] mb-3 flex items-center">
+          <p className="text-xs font-bold text-red-900 uppercase tracking-widest line-clamp-2">
+            {materia}
+          </p>
+        </div>
 
         {/* 4. Body: Synthesis */}
         {/* Requirement: Center text, truncation */}
         <div className="flex-1 overflow-hidden relative flex items-center justify-center px-2">
-          <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 text-center">
+          <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 text-center">
             {sintesis || <span className="italic opacity-50">Sin síntesis disponible.</span>}
           </p>
         </div>

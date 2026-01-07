@@ -33,3 +33,37 @@ export interface AmbitoLegal {
     tipo: 'MATERIA' | 'CATEGORIA' | 'SUBCATEGORIA' | 'AMBITO';
     children?: AmbitoLegal[];
 }
+
+export interface CategoriaViviendaResponse {
+    id: number;
+    descripcion: string;
+}
+
+export interface TipoViviendaResponse {
+    id: number;
+    nombre: string;
+    categorias: CategoriaViviendaResponse[];
+}
+
+export interface Semestre {
+    termino: string;
+    nombre: string;
+}
+
+export interface CondicionLaboralResponse {
+    id: number;
+    condicion: string;
+}
+
+
+export interface CondicionActividadResponse {
+    id: number;
+    nombre: string;
+}
+
+export interface Tribunal {
+    idTribunal: number;
+    tipoTribunal: string;
+    nombreTribunal: string;
+}
+

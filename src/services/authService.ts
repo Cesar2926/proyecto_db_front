@@ -29,4 +29,11 @@ export const authService = {
         const response = await api.get<User>('/auth/me');
         return response.data;
     },
+
+    logout: (): void => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('user');
+        // O limpia todo si prefieres: localStorage.clear();
+    },
 };

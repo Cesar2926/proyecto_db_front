@@ -1,6 +1,6 @@
 import api from './api';
 
-import type { Estado, Municipio, Parroquia, AmbitoLegal, Centro, EstadoCivil } from '../types';
+import type { Estado, Municipio, Parroquia, AmbitoLegal, Centro, EstadoCivil, Semestre } from '../types';
 
 const catalogoService = {
     getEstados: async () => {
@@ -44,6 +44,31 @@ const catalogoService = {
 
     getCentros: async () => {
         const response = await api.get<Centro[]>('/catalogos/centros');
+        return response.data;
+    },
+
+    getTribunales: async () => {
+        const response = await api.get<import('../types/catalogo').Tribunal[]>('/catalogos/tribunales');
+        return response.data;
+    },
+
+    getSemestres: async () => {
+        const response = await api.get<Semestre[]>('/catalogos/semestres');
+        return response.data;
+    },
+
+    getViviendas: async () => {
+        const response = await api.get<import('../types').TipoViviendaResponse[]>('/catalogos/viviendas');
+        return response.data;
+    },
+
+    getCondicionesLaborales: async () => {
+        const response = await api.get<import('../types').CondicionLaboralResponse[]>('/catalogos/condiciones-laborales');
+        return response.data;
+    },
+
+    getCondicionesActividad: async () => {
+        const response = await api.get<import('../types').CondicionActividadResponse[]>('/catalogos/condiciones-actividad');
         return response.data;
     },
 };

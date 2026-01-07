@@ -1,10 +1,26 @@
 import api from './api';
-import type { CasoCreateRequest, CasoDetalleResponse, CasoSummary } from '../types/caso';
+import type { CasoCreateRequest, CasoDetalleResponse, CasoSummary, AccionCreateRequest } from '../types/caso';
 
 const casoService = {
     create: async (data: CasoCreateRequest): Promise<CasoDetalleResponse> => {
         const response = await api.post<CasoDetalleResponse>('/casos', data);
         return response.data;
+    },
+
+    update: async (id: string, data: any): Promise<void> => {
+        await api.put(`/casos/${id}`, data);
+    },
+
+    addBeneficiario: async (id: string, data: any): Promise<void> => {
+        await api.post(`/casos/${id}/beneficiarios`, data);
+    },
+
+    updateBeneficiario: async (id: string, cedula: string, data: { tipoBeneficiario: string; parentesco: string }) => {
+        await api.patch(`/casos/${id}/beneficiarios/${cedula}`, data);
+    },
+
+    createAccion: async (id: string, data: AccionCreateRequest): Promise<void> => {
+        await api.post(`/casos/${id}/acciones`, data);
     },
 
     getAll: async (estatus?: string, username?: string, termino?: string): Promise<CasoSummary[]> => {
@@ -14,6 +30,11 @@ const casoService = {
         if (termino) params.append('termino', termino);
 
         const response = await api.get<CasoSummary[]>(`/casos?${params.toString()}`);
+        return response.data;
+    },
+
+    getById: async (id: string): Promise<CasoDetalleResponse> => {
+        const response = await api.get<CasoDetalleResponse>(`/casos/${id}`);
         return response.data;
     },
 };

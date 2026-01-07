@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Plus, Trash2, Users } from 'lucide-react';
 import solicitanteService from '../../services/solicitanteService';
 import Modal from '../common/Modal';
+import CustomSelect from '../common/CustomSelect';
 import SolicitanteForm from './SolicitanteForm';
 import type { BeneficiarioCreateRequest } from '../../types/caso';
 
@@ -171,16 +172,12 @@ export default function BeneficiarioManager({ beneficiarios, onBeneficiariosChan
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tipo Beneficiario</label>
-                            <select
+                            <CustomSelect
                                 value={tipoBeneficiario}
-                                onChange={(e) => setTipoBeneficiario(e.target.value)}
-                                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none bg-white"
-                            >
-                                <option value="">Seleccione...</option>
-                                {TIPO_BENEFICIARIO_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
+                                onChange={(val: any) => setTipoBeneficiario(String(val))}
+                                options={TIPO_BENEFICIARIO_OPTIONS}
+                                placeholder="Seleccione..."
+                            />
                         </div>
                     </div>
 
@@ -256,6 +253,7 @@ export default function BeneficiarioManager({ beneficiarios, onBeneficiariosChan
                     initialData={{ cedula: cedulaSearch }}
                     onSuccess={handleNewPersonCreated}
                     onCancel={() => setIsModalOpen(false)}
+                    formMode='create'
                 />
             </Modal>
         </div>

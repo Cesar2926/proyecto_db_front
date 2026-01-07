@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Users } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import Button from '../components/common/Button';
 import EstudianteManager from '../components/forms/EstudianteManager';
 
 import MainLayout from '../components/layout/MainLayout';
@@ -205,13 +207,15 @@ function RegistroCaso() {
                 <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
               </div>
             </div>
-            <button
+            <Button
               onClick={handleSearchSolicitante}
               disabled={isSearching}
-              className="px-6 py-3 bg-red-900 text-white rounded-lg hover:bg-red-800 transition-colors disabled:opacity-50 font-medium"
+              isLoading={isSearching}
+              variant="primary"
+              className="py-3 h-[50px]"
             >
               {isSearching ? 'Buscando...' : 'Verificar'}
-            </button>
+            </Button>
           </div>
 
           {errorMessage && (
@@ -221,14 +225,15 @@ function RegistroCaso() {
           {/* Resultado de búsqueda */}
           {solicitante && (
             <div className="mt-6 p-6 bg-green-50 border border-green-100 rounded-xl animate-fade-in relative group">
-
               <div className="absolute top-6 right-6">
-                <button
+                <Button
                   onClick={() => setSolicitante(null)}
-                  className="text-sm text-green-700 hover:text-green-900 underline font-medium"
+                  variant="ghost"
+                  size="sm"
+                  className="text-green-700 hover:text-green-900 hover:bg-green-100"
                 >
                   Cambiar usuario
-                </button>
+                </Button>
               </div>
 
               <div className="flex items-start gap-4 mb-6">
@@ -294,7 +299,6 @@ function RegistroCaso() {
         {/* 2. DATOS DEL CASO - Solo visible si hay solicitante */}
         {solicitante && (
           <form onSubmit={handleRegistroCaso} className="space-y-8 animate-fade-in">
-
             <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <span className="bg-red-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
@@ -316,7 +320,7 @@ function RegistroCaso() {
                   />
                 </div>
 
-                {/* Fecha Recepción - Visual only, usually determined by backend but helpful for record */}
+                {/* Fecha Recepción */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Fecha de Recepción
@@ -327,7 +331,7 @@ function RegistroCaso() {
                   />
                 </div>
 
-                {/* Trámite (Restricted by Schema) */}
+                {/* Trámite */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tipo de Trámite *
@@ -354,7 +358,7 @@ function RegistroCaso() {
                   />
                 </div>
 
-                {/* Síntesis - Inside grid, single column */}
+                {/* Síntesis */}
                 <div className="h-full flex flex-col">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Síntesis de los Hechos *
@@ -372,7 +376,7 @@ function RegistroCaso() {
                   </div>
                 </div>
 
-                {/* Sub-sección Beneficiarios (Inside Grid, Single Column) */}
+                {/* Sub-sección Beneficiarios */}
                 <div className="h-full flex flex-col">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Beneficiarios
@@ -388,7 +392,6 @@ function RegistroCaso() {
             </section>
 
             {/* 3. INFORMACIÓN DEL ENCUENTRO */}
-            {/* 3. INFORMACIÓN DEL ENCUENTRO */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <span className="bg-red-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
@@ -396,7 +399,6 @@ function RegistroCaso() {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                 {/* Orientación */}
                 <div className="flex flex-col">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -411,7 +413,7 @@ function RegistroCaso() {
                   />
                 </div>
 
-                {/* Estudiantes en Atención (List Manager Style) */}
+                {/* Estudiantes en Atención */}
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 h-full flex flex-col">
                   <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <Users className="w-4 h-4" />
@@ -427,25 +429,26 @@ function RegistroCaso() {
               </div>
             </section>
 
-
             {/* Botones de Acción */}
             <div className="flex justify-end gap-4 pt-4 pb-12">
-              <button
+              <Button
                 type="button"
                 onClick={() => navigate('/casos')}
-                className="px-6 py-3 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                variant="secondary"
+                size="lg"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="px-8 py-3 bg-red-900 text-white font-bold rounded-lg hover:bg-red-800 shadow-lg hover:shadow-red-900/20 transition-all flex items-center gap-2"
+                variant="primary"
+                size="lg"
+                icon={faPlus}
+                className="shadow-lg hover:shadow-red-900/20"
               >
-                <Plus className="w-5 h-5" />
                 Registrar Caso
-              </button>
+              </Button>
             </div>
-
           </form>
         )}
       </div>
@@ -458,6 +461,7 @@ function RegistroCaso() {
       >
         <SolicitanteForm
           isModal={true}
+          formMode="create"
           initialData={solicitante ? { ...solicitante } : { cedula: cedulaSearch }}
           onSuccess={handleSolicitanteCreated}
           onCancel={() => setIsModalOpen(false)}
@@ -470,7 +474,7 @@ function RegistroCaso() {
         onClose={closeSuccessModal}
         title="¡Caso Creado Exitosamente!"
       >
-        <div className="text-center">
+        <div className="text-center p-6">
           <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">✓</span>
           </div>
@@ -492,10 +496,6 @@ function RegistroCaso() {
             </div>
             <div className="flex justify-between border-b pb-2 cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded">
               <span className="text-gray-600 font-medium">Centro:</span>
-              {/* We can find name if we have the list, but ID is what we have in response usually if not populated. 
-                             However, createdCase IS CasoDetalleResponse which has full CasoResponse.
-                             CasoResponse has idCentro. We might need to look it up in 'centros' state if name not provided.
-                         */}
               <span className="text-gray-900 ml-2">
                 {centros.find(c => c.idCentro === createdCase?.caso.idCentro)?.nombreCentro || createdCase?.caso.idCentro}
               </span>
@@ -507,22 +507,21 @@ function RegistroCaso() {
           </div>
 
           <div className="flex gap-3 justify-center">
-            <button
+            <Button
               onClick={() => navigate('/casos')}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              variant="secondary"
             >
               Volver a la lista
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={closeSuccessModal}
-              className="px-6 py-2 bg-red-900 text-white font-bold rounded-lg hover:bg-red-800 transition-colors"
+              variant="primary"
             >
               Ver Detalle
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
-
 
       {/* Toast Notification */}
       {showToast && (

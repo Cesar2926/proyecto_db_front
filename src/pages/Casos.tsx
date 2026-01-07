@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faSearch, faFileExcel } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faSearch, faFileExcel, faFilter, faPlus } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
+import CasoRow from '../components/CasoRow';
+import Button from '../components/common/Button';
+import CustomSelect from '../components/common/CustomSelect'; // Importar CustomSelect
+import Pagination from '../components/common/Pagination';
+import SearchBar from '../components/common/SearchBar';
+import ViewToggle from '../components/common/ViewToggle';
 import casoService from '../services/casoService';
 import catalogoService from '../services/catalogoService';
 import { reporteService } from '../services/reporteService';
 import type { CasoSummary } from '../types/caso';
-import type { AmbitoLegal } from '../types/catalogo';
-
-type FiltroType = 'asignados' | 'todos';
+import type { AmbitoLegal, Semestre } from '../types/catalogo';
 
 function CasosPage() {
   const [casos, setCasos] = useState<CasoSummary[]>([]);
@@ -18,27 +22,26 @@ function CasosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchText, setSearchText] = useState('');
 
-  // Mapa de IDs de Ámbitos Legales a Nombres
+  // UI State
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortOption, setSortOption] = useState<string>('fecha_desc'); // fecha_asc, fecha_desc, nombre_asc, nombre_desc
+
+  // Catálogos
   const [ambitosLegales, setAmbitosLegales] = useState<Record<number, string>>({});
+  const [semestres, setSemestres] = useState<Semestre[]>([]);
 
-  // Recuperar el filtro guardado o usar 'asignados' por defecto
-  const [filtro, setFiltro] = useState<FiltroType>(
-    () => (localStorage.getItem('filtro_casos') as FiltroType) || 'asignados'
-  );
-  const casosPerPage = 12; // Número de casos por página
+  // Filtros de API
+  const [selectedStatus, setSelectedStatus] = useState<string>('ABIERTO');
+  const [selectedSemestre, setSelectedSemestre] = useState<string>('');
+  const [onlyMyCases, setOnlyMyCases] = useState<boolean>(true);
+
+
+  const casosPerPage = 12;
   const navigate = useNavigate();
-
-  // Obtener el ID del usuario logueado (username)
   const username = localStorage.getItem('username') || '';
 
   const handleCasoClick = (numCaso: string) => {
     navigate(`/casos/${numCaso}`);
-  };
-
-  const handleFiltroChange = (nuevoFiltro: FiltroType) => {
-    setFiltro(nuevoFiltro);
-    localStorage.setItem('filtro_casos', nuevoFiltro);
-    setCurrentPage(1);
   };
 
   const handlePageChange = (pageNumber: number) => {
@@ -46,7 +49,6 @@ function CasosPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Helper para aplanar el árbol de ambitos
   const buildAmbitoMap = (ambitos: AmbitoLegal[], map: Record<number, string> = {}) => {
     ambitos.forEach(ambito => {
       map[ambito.id] = ambito.descripcion;
@@ -57,98 +59,182 @@ function CasosPage() {
     return map;
   };
 
-  // Cargar casos y catálogos desde la API
+  // Cargar Catálogos Iniciales
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCatalogos = async () => {
+      try {
+        const [ambitosData, semestresData] = await Promise.all([
+          catalogoService.getAmbitosLegales(),
+          catalogoService.getSemestres()
+        ]);
+        setAmbitosLegales(buildAmbitoMap(ambitosData));
+        setSemestres(semestresData);
+      } catch (error) {
+        console.error('Error cargando catálogos:', error);
+      }
+    };
+    fetchCatalogos();
+  }, []);
+
+  // Cargar Casos cuando cambian los filtros
+  useEffect(() => {
+    const fetchCasos = async () => {
       setLoading(true);
       try {
-        // 1. Cargar catálogo de Ámbitos Legales
-        const ambitosData = await catalogoService.getAmbitosLegales();
-        const ambitosMap = buildAmbitoMap(ambitosData);
-        setAmbitosLegales(ambitosMap);
+        const userFilter = onlyMyCases ? username : undefined;
+        // Si el estatus es 'TODOS', mandamos undefined al service
+        const statusFilter = selectedStatus === 'TODOS' ? undefined : selectedStatus;
+        const terminoFilter = selectedSemestre === '' ? undefined : selectedSemestre;
 
-        // 2. Cargar Casos
-        // Por defecto traemos solo casos ABIERTOS
-        // Si el filtro es 'asignados', pasamos el username
-        // Si es 'todos', no pasamos username (backend devuelve todos los filtrados por estatus)
-        const userFilter = filtro === 'asignados' ? username : undefined;
-        // El usuario pidió "listados todos los casos abiertos", así que fijamos estatus='ABIERTO' hoy.
-        // Si se requiere ver cerrados, habría que cambiar esto o agregar opción UI.
-        const data = await casoService.getAll('ABIERTO', userFilter);
+        const data = await casoService.getAll(statusFilter, userFilter, terminoFilter);
         setCasos(data);
+        setCurrentPage(1); // Reset page only when API data changes
       } catch (error) {
-        console.error('Error al cargar datos:', error);
+        console.error('Error al cargar casos:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [filtro, username]);
+    fetchCasos();
+  }, [selectedStatus, selectedSemestre, onlyMyCases, username]);
 
-  // Filtrado local por Buscador
+  // Filtrado local por Buscador (Texto)
   const casosFiltrados = casos.filter((caso) => {
-    const search = searchText.toLowerCase();
-    const matchNum = caso.numCaso.toLowerCase().includes(search);
+    if (!searchText) return true;
+    const search = searchText.trim().toLowerCase();
+
+    // Validaciones seguras contra nulos/undefined
+    const matchNum = caso.numCaso?.toLowerCase().includes(search) || false;
     const matchNombre = caso.nombreSolicitante?.toLowerCase().includes(search) || false;
-    const matchCedula = caso.cedula.toLowerCase().includes(search);
+    const matchCedula = caso.cedula?.toLowerCase().includes(search) || false;
     const matchSintesis = caso.sintesis?.toLowerCase().includes(search) || false;
 
-    return matchNum || matchNombre || matchCedula || matchSintesis;
+    // Búsqueda por Materia (resolviendo el ID con el mapa)
+    const nombreMateria = ambitosLegales[caso.comAmbLegal] || '';
+    const matchMateria = nombreMateria.toLowerCase().includes(search);
+
+    return matchNum || matchNombre || matchCedula || matchSintesis || matchMateria;
   });
 
-  // Paginación
+  // Ordenamiento
+  const casosOrdenados = [...casosFiltrados].sort((a, b) => {
+    if (sortOption === 'fecha_desc') {
+      return new Date(b.fechaRecepcion).getTime() - new Date(a.fechaRecepcion).getTime();
+    } else if (sortOption === 'fecha_asc') {
+      return new Date(a.fechaRecepcion).getTime() - new Date(b.fechaRecepcion).getTime();
+    } else if (sortOption === 'nombre_asc') {
+      return (a.nombreSolicitante || '').localeCompare(b.nombreSolicitante || '');
+    } else if (sortOption === 'nombre_desc') {
+      return (b.nombreSolicitante || '').localeCompare(a.nombreSolicitante || '');
+    }
+    return 0;
+  });
+
+
   const indexOfLastCaso = currentPage * casosPerPage;
   const indexOfFirstCaso = indexOfLastCaso - casosPerPage;
-  const casosActuales = casosFiltrados.slice(indexOfFirstCaso, indexOfLastCaso);
-  const totalPages = Math.ceil(casosFiltrados.length / casosPerPage);
+  const casosActuales = casosOrdenados.slice(indexOfFirstCaso, indexOfLastCaso);
+
+  // Opciones para CustomSelect
+  const statusOptions = [
+    { value: 'ABIERTO', label: 'Abiertos' },
+    { value: 'EN TRÁMITE', label: 'En Trámite' },
+    { value: 'EN PAUSA', label: 'En Pausa' },
+    { value: 'CERRADO', label: 'Cerrados' },
+    { value: 'TODOS', label: 'Todos los Estatus' }
+  ];
+
+  const sortOptions = [
+    { value: 'fecha_desc', label: 'Recientes primero' },
+    { value: 'fecha_asc', label: 'Antiguos primero' },
+    { value: 'nombre_asc', label: 'Solicitante (A-Z)' },
+    { value: 'nombre_desc', label: 'Solicitante (Z-A)' }
+  ];
+
+  const semesterOptions = [
+    { value: '', label: 'Todos los Semestres' },
+    ...semestres.map(s => ({ value: s.termino, label: s.nombre }))
+  ];
 
   return (
-    <MainLayout title="CASOS ASIGNADOS">
+    <MainLayout title="GESTIÓN DE CASOS">
       <div className="w-full mx-auto">
-        {/* Barra de Controles: Buscador y Filtro */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
 
-          {/* Buscador */}
-          <div className="relative w-full md:w-96">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+        {/* Controles de Filtros y Búsqueda */}
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-200">
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+
+            {/* Buscador de Texto */}
+            <div className="w-full md:w-1/3">
+              <SearchBar
+                value={searchText}
+                onChange={setSearchText}
+                placeholder="Buscar en resultados..."
+              />
             </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-900 focus:border-red-900 sm:text-sm transition duration-150 ease-in-out"
-              placeholder="Buscar por código, nombre, cédula o síntesis..."
-              value={searchText}
-              onChange={(e) => {
-                setSearchText(e.target.value);
-                setCurrentPage(1); // Reset page on search
-              }}
-            />
-          </div>
 
-          <div className="flex items-center gap-4">
-            {/* Información de paginación */}
-            {!loading && (
-              <div className="text-gray-600 text-sm hidden md:block">
-                Mostrando {casosFiltrados.length > 0 ? indexOfFirstCaso + 1 : 0} -{' '}
-                {Math.min(indexOfLastCaso, casosFiltrados.length)} de {casosFiltrados.length} casos
+            {/* Filtros Dropdowns y Toggles */}
+            <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
+
+              {/* View Toggle */}
+              <div className="hidden md:flex">
+                <ViewToggle
+                  viewMode={viewMode}
+                  onToggle={setViewMode}
+                />
               </div>
-            )}
 
-            {/* Filtro desplegable */}
-            <div className="relative">
-              <select
-                value={filtro}
-                onChange={(e) => handleFiltroChange(e.target.value as FiltroType)}
-                className="appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 font-medium hover:border-red-900 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent transition-all cursor-pointer"
+              {/* Ordenamiento - CustomSelect */}
+              <div className="w-48">
+                <CustomSelect
+                  value={sortOption}
+                  options={sortOptions}
+                  onChange={setSortOption}
+                  placeholder="Ordenar por..."
+                />
+              </div>
+
+              {/* Filtro Semestre - CustomSelect */}
+              <div className="w-75">
+                <CustomSelect
+                  value={selectedSemestre}
+                  options={semesterOptions}
+                  onChange={setSelectedSemestre}
+                  placeholder="Semestre"
+                />
+              </div>
+
+              {/* Filtro Estatus - CustomSelect */}
+              <div className="w-48">
+                <CustomSelect
+                  value={selectedStatus}
+                  options={statusOptions}
+                  onChange={setSelectedStatus}
+                  placeholder="Estatus"
+                />
+              </div>
+
+              {/* Toggle Mis Casos */}
+              <Button
+                variant={onlyMyCases ? 'primary' : 'outline'}
+                onClick={() => setOnlyMyCases(!onlyMyCases)}
+                className="gap-2"
+                icon={faFilter}
               >
-                <option value="asignados">Mis Casos Asignados</option>
-                <option value="todos">Todos los Casos Abiertos</option>
-              </select>
-              {/* Ícono de flecha */}
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-700">
-                <FontAwesomeIcon icon={faChevronDown} className="text-xs" />
-              </div>
+                {onlyMyCases ? 'Mis Casos' : 'Todos'}
+              </Button>
+
+              {/* Botón Registrar Caso */}
+              <Button
+                variant="primary"
+                onClick={() => navigate('/registro-caso')}
+                className="gap-2"
+                icon={faPlus}
+              >
+                Registrar Caso
+              </Button>
+
             </div>
 
             {/* Botón Exportar Reporte General */}
@@ -163,97 +249,102 @@ function CasosPage() {
           </div>
         </div>
 
+        {/* Resumen de Resultados */}
+        {!loading && (
+          <div className="mb-4 text-sm text-gray-600">
+            Mostrando {casosActuales.length} de {casosOrdenados.length} casos encontrados
+            {(selectedStatus !== 'TODOS' || selectedSemestre || onlyMyCases || searchText) &&
+              <span className="ml-2 italic text-gray-500">(filtros activos)</span>
+            }
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-gray-600 text-lg animate-pulse">Cargando casos...</p>
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-900 mb-4"></div>
+              <p className="text-gray-600">Cargando casos...</p>
+            </div>
           </div>
         ) : (
           <>
-            {casosFiltrados.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                No se encontraron casos con los criterios de búsqueda.
+            {casosOrdenados.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-lg border border-dashed border-gray-300">
+                <p className="text-gray-500 text-lg">No se encontraron casos con los criterios seleccionados.</p>
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setSearchText('');
+                    setSelectedStatus('TODOS');
+                    setSelectedSemestre('');
+                    setOnlyMyCases(false);
+                    setSortOption('fecha_desc');
+                  }}
+                  className="mt-4"
+                >
+                  Limpiar filtros
+                </Button>
               </div>
             ) : (
-              <div
-                className="grid gap-4 mb-8"
-                style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
-              >
-                {casosActuales.map((caso) => (
-                  <CaseCard
-                    key={caso.numCaso}
-                    numCaso={caso.numCaso}
-                    cedula={caso.cedula}
-                    nombre={caso.nombreSolicitante}
-                    materia={ambitosLegales[caso.comAmbLegal] || 'DESCONOCIDO'}
-                    sintesis={caso.sintesis}
-                    fecha={caso.fechaRecepcion}
-                    estatus={caso.estatus}
-                    onClick={() => handleCasoClick(caso.numCaso)}
-                    usuarios_asignados={[]}
-                  />
-                ))}
-              </div>
+              <>
+                {viewMode === 'list' ? (
+                  <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caso</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materia</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estatus</th>
+                          <th scope="col" className="relative px-6 py-3">
+                            <span className="sr-only">Ver</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {casosActuales.map((caso) => (
+                          <CasoRow
+                            key={caso.numCaso}
+                            caso={caso}
+                            materia={ambitosLegales[caso.comAmbLegal] || 'DESCONOCIDO'}
+                            onClick={() => handleCasoClick(caso.numCaso)}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div
+                    className="grid gap-6 mb-8"
+                    style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}
+                  >
+                    {casosActuales.map((caso) => (
+                      <CaseCard
+                        key={caso.numCaso}
+                        numCaso={caso.numCaso}
+                        cedula={caso.cedula}
+                        nombre={caso.nombreSolicitante}
+                        materia={ambitosLegales[caso.comAmbLegal] || 'DESCONOCIDO'}
+                        sintesis={caso.sintesis}
+                        fecha={caso.fechaRecepcion}
+                        estatus={caso.estatus}
+                        onClick={() => handleCasoClick(caso.numCaso)}
+                        usuarios_asignados={[]}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Controles de paginación */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 pb-8">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 bg-red-900 text-white rounded-lg hover:bg-red-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  ← Anterior
-                </button>
-
-                <div className="flex gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                    // Mostrar solo un rango de páginas si hay muchas (opcional, por ahora simple)
-                    if (totalPages > 7) {
-                      if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`w-10 h-10 rounded-lg font-medium transition-all ${currentPage === pageNum
-                              ? 'bg-red-900 text-white scale-110'
-                              : 'bg-white text-gray-700 hover:bg-gray-100'
-                              }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                        return <span key={pageNum} className="self-end px-1">...</span>;
-                      } else {
-                        return null;
-                      }
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`w-10 h-10 rounded-lg font-medium transition-all ${currentPage === pageNum
-                          ? 'bg-red-900 text-white scale-110'
-                          : 'bg-white text-gray-700 hover:bg-gray-100'
-                          }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 bg-red-900 text-white rounded-lg hover:bg-red-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Siguiente →
-                </button>
-              </div>
-            )}
+            {/* Paginación */}
+            <Pagination
+              currentPage={currentPage}
+              itemsPerPage={casosPerPage}
+              totalItems={casosOrdenados.length}
+              onPageChange={handlePageChange}
+            />
           </>
         )}
       </div>

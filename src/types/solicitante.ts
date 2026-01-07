@@ -27,8 +27,12 @@ export interface SolicitanteResponse {
     telfCasa: string;
     telfCelular: string;
     email: string;
-    estadoResidencia: string;
-    municipioResidencia: string;
-    parroquiaResidencia: string;
-    tipoVivienda: string;
+    idEstadoCivil?: number;
+    idParroquia?: number;
+    idMunicipio?: number;
+    idEstado?: number;
+    idCondicion?: number;
+    idCondicionActividad?: number;
+    idNivel?: number;
+    apellido?: string; // Adding as optional if backend sends it, otherwise update backend DTO
 }

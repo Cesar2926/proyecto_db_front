@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,16 +14,17 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { label: 'Casos asignados', path: '/casos' },
+  { label: 'Casos', path: '/casos' },
   { label: 'Citas pendientes', path: '/opcion2' },
   { label: 'Indicadores', path: '/indicadores' },
   { label: 'Expedientes', path: '/expedientes' },
   { label: 'Registro de Casos', path: '/registro-caso' },
-  { label: 'Registro Beneficiarios', path: '/registro' },
+  { label: 'Solicitantes y Beneficiarios', path: '/solicitantes' },
 ];
 
 function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -30,9 +32,8 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const handleLogout = () => {
-    // Limpiar localStorage (token, datos de sesión, etc.)
-    localStorage.clear();
-    // O específicamente: localStorage.removeItem('token');
+    // Usar el logout del contexto para asegurar que el estado se actualice
+    logout();
 
     // Cerrar el sidebar
     onClose();
@@ -50,9 +51,8 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-red-900 to-red-950 z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-linear-to-b from-red-900 to-red-950 z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Botón cerrar */}
         <button
