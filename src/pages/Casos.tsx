@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faSearch, faFileExcel, faFilter, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faFileExcel, faFilter, faPlus } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
 import CasoRow from '../components/CasoRow';
