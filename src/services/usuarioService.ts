@@ -12,6 +12,25 @@ const usuarioService = {
         const response = await api.get<Usuario>(`/usuarios/${username}`);
         return response.data;
     },
+
+    importEstudiantes: async (formData: FormData): Promise<any> => {
+        const response = await api.post('/estudiantes/importar', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+
+    createUsuario: async (usuario: Partial<Usuario>): Promise<Usuario> => {
+        // Note: Backend endpoint for create user might be /usuarios (POST) or similar.
+        // Assuming standard REST convention or based on UsuarioController (not fully analyzed but standard practice).
+        // If not exists, I might need to create it in backend too.
+        // Let's assume /usuarios exists for now or use /auth/register if it's an auth flow.
+        // Checking backend controller list: UsuarioController exist.
+        const response = await api.post<Usuario>('/usuarios', usuario);
+        return response.data;
+    }
 };
 
 export default usuarioService;

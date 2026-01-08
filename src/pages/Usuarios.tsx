@@ -3,10 +3,14 @@ import MainLayout from '../components/layout/MainLayout';
 import SearchBar from '../components/common/SearchBar';
 import Pagination from '../components/common/Pagination';
 import usuarioService from '../services/usuarioService';
+import ImportModal from '../components/users/ImportModal';
+import UserFormModal from '../components/users/UserFormModal';
 import type { Usuario } from '../types/usuario';
 import {
     Mail,
-    User
+    User,
+    Upload,
+    Plus
 } from 'lucide-react';
 
 export default function UsuariosPage() {
@@ -14,6 +18,8 @@ export default function UsuariosPage() {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchText, setSearchText] = useState('');
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
     const itemsPerPage = 10;
 
@@ -102,7 +108,22 @@ export default function UsuariosPage() {
                             placeholder="Buscar por nombre, cédula, usuario..."
                         />
                     </div>
-                    {/* Future: Add 'Create User' button here if needed */}
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="flex items-center justify-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors w-full md:w-auto"
+                        >
+                            <Upload size={18} className="mr-2" />
+                            Importar Masivo
+                        </button>
+                        <button
+                            onClick={() => setIsUserModalOpen(true)}
+                            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors w-full md:w-auto"
+                        >
+                            <Plus size={18} className="mr-2" />
+                            Crear usuario
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -175,6 +196,18 @@ export default function UsuariosPage() {
                     </div>
                 )}
             </div>
+
+            <ImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={fetchUsuarios}
+            />
+
+            <UserFormModal
+                isOpen={isUserModalOpen}
+                onClose={() => setIsUserModalOpen(false)}
+                onSuccess={fetchUsuarios}
+            />
         </MainLayout>
     );
 }
