@@ -20,6 +20,7 @@ const menuItems: MenuItem[] = [
   { label: 'Expedientes', path: '/expedientes' },
   { label: 'Registro de Casos', path: '/registro-caso' },
   { label: 'Solicitantes y Beneficiarios', path: '/solicitantes' },
+  { label: 'Gestión de Usuarios', path: '/usuarios' },
 ];
 
 function Sidebar({ isOpen, onClose }: SidebarProps) {

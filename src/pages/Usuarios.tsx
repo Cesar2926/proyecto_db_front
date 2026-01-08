@@ -31,9 +31,15 @@ export default function UsuariosPage() {
         setLoading(true);
         try {
             const data = await usuarioService.getAll();
-            setUsuarios(data);
+            if (Array.isArray(data)) {
+                setUsuarios(data);
+            } else {
+                console.error('Error: usuarioService.getAll() did not return an array', data);
+                setUsuarios([]);
+            }
         } catch (error) {
             console.error('Error fetching users:', error);
+            setUsuarios([]);
         } finally {
             setLoading(false);
         }
