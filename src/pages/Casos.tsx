@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-import { faFilter, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFileExcel, faFilter, faPlus } from '@fortawesome/free-solid-svg-icons';
 import MainLayout from '../components/layout/MainLayout';
 import CaseCard from '../components/CaseCard';
 import CasoRow from '../components/CasoRow';
@@ -12,6 +12,7 @@ import SearchBar from '../components/common/SearchBar';
 import ViewToggle from '../components/common/ViewToggle';
 import casoService from '../services/casoService';
 import catalogoService from '../services/catalogoService';
+import { reporteService } from '../services/reporteService';
 import type { CasoSummary } from '../types/caso';
 import type { AmbitoLegal, Semestre } from '../types/catalogo';
 
@@ -235,6 +236,16 @@ function CasosPage() {
               </Button>
 
             </div>
+
+            {/* Botón Exportar Reporte General */}
+            <button
+              onClick={() => reporteService.downloadReporteGeneral()}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
+              title="Descargar Reporte General de Casos"
+            >
+              <FontAwesomeIcon icon={faFileExcel} />
+              <span className="hidden sm:inline">Reporte General</span>
+            </button>
           </div>
         </div>
 

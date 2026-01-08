@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar';
 import casoService from '../services/casoService';
 import solicitanteService from '../services/solicitanteService';
 import catalogoService from '../services/catalogoService';
+import { reporteService } from '../services/reporteService'; // Import from HEAD
 import Modal from '../components/common/Modal';
 import CustomSelect from '../components/common/CustomSelect';
 import Button from '../components/common/Button';
@@ -14,6 +15,8 @@ import AddEncuentroModal from '../components/modals/AddEncuentroModal';
 // import AddBeneficiarioModal from '../components/modals/AddBeneficiarioModal';
 import SolicitanteForm from '../components/forms/SolicitanteForm';
 import { Plus, Search, UserPlus, Pencil } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFileExcel } from '@fortawesome/free-solid-svg-icons';
 
 import type {
   CasoDetalleResponse,
@@ -360,7 +363,17 @@ function CasoDetalle() {
               </svg>
               Volver
             </button>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              {/* Botón Exportar Reporte Caso */}
+              <button
+                onClick={() => caso.numCaso && reporteService.downloadReporteCaso(caso.numCaso)}
+                className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2 text-sm"
+                title="Descargar Reporte del Caso"
+              >
+                <FontAwesomeIcon icon={faFileExcel} />
+                <span className="hidden sm:inline">Exportar</span>
+              </button>
+
               <span
                 className={`px-4 py-1 rounded-full text-sm font-semibold border ${caso.estatus === 'ABIERTO' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}`}
               >
