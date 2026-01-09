@@ -1,48 +1,140 @@
 @import 'tailwindcss';
 
+@layer base {
+  :root {
+    /* MODO CLARO - Todo blanco y limpio */
+    --background: 0 0% 100%; /* Blanco puro */
+    --foreground: 0 0% 13%; /* Negro para texto */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
+
+    /* Primary = Vinotinto oscuro para tarjetas */
+    --primary: 0 95% 25%; /* #7C0A02 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 98%; /* Gris muy claro */
+    --secondary-foreground: 0 0% 13%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 13%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 95% 25%;
+
+    --radius: 0.5rem;
+
+    /* Configuración de fuente y renderizado */
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+
 /* Custom Animations */
 @keyframes slideInUp {
-    0% {
-        opacity: 0;
-        transform: translateY(100px) scale(0.95);
-    }
+  0% {
+    opacity: 0;
+    transform: translateY(100px) scale(0.95);
+  }
 
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .animate-slide-up-modal {
-    animation: slideInUp 0.5s ease-out forwards;
+  animation: slideInUp 0.5s ease-out forwards;
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
+  from {
+    opacity: 0;
+  }
 
-    to {
-        opacity: 1;
-    }
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
 @keyframes slideInUpPage {
-    0% {
-        opacity: 0;
-        transform: translateY(40px);
-    }
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
 
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-slide-up-page {
-    animation: slideInUpPage 0.7s ease-out forwards;
+  animation: slideInUpPage 0.7s ease-out forwards;
 }

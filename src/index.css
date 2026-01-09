@@ -1,18 +1,60 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  :root {
+    /* MODO CLARO - Todo blanco y limpio */
+    --background: 0 0% 100%; /* Blanco puro */
+    --foreground: 0 0% 13%; /* Negro para texto */
 
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
+
+    /* Primary = Vinotinto oscuro para tarjetas */
+    --primary: 0 95% 25%; /* #7C0A02 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 98%; /* Gris muy claro */
+    --secondary-foreground: 0 0% 13%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 13%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 95% 25%;
+
+    --radius: 0.5rem;
+
+    /* Configuración de fuente y renderizado */
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 body {

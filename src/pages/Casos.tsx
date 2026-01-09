@@ -162,23 +162,23 @@ function CasosPage() {
       <div className="w-full mx-auto">
 
         {/* Controles de Filtros y Búsqueda */}
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-200">
-          <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+        <div className="bg-white p-3 rounded-lg shadow-sm mb-6 border border-gray-200">
+          <div className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
 
             {/* Buscador de Texto */}
-            <div className="w-full md:w-1/3">
+            <div className="w-full lg:w-64 xl:w-80">
               <SearchBar
                 value={searchText}
                 onChange={setSearchText}
-                placeholder="Buscar en resultados..."
+                placeholder="Buscar..."
               />
             </div>
 
             {/* Filtros Dropdowns y Toggles */}
-            <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
+            <div className="flex flex-wrap gap-2 items-center justify-end">
 
               {/* View Toggle */}
-              <div className="hidden md:flex">
+              <div className="hidden lg:flex">
                 <ViewToggle
                   viewMode={viewMode}
                   onToggle={setViewMode}
@@ -186,17 +186,17 @@ function CasosPage() {
               </div>
 
               {/* Ordenamiento - CustomSelect */}
-              <div className="w-48">
+              <div className="w-36 xl:w-40">
                 <CustomSelect
                   value={sortOption}
                   options={sortOptions}
                   onChange={setSortOption}
-                  placeholder="Ordenar por..."
+                  placeholder="Ordenar"
                 />
               </div>
 
               {/* Filtro Semestre - CustomSelect */}
-              <div className="w-75">
+              <div className="w-36 xl:w-40">
                 <CustomSelect
                   value={selectedSemestre}
                   options={semesterOptions}
@@ -206,7 +206,7 @@ function CasosPage() {
               </div>
 
               {/* Filtro Estatus - CustomSelect */}
-              <div className="w-48">
+              <div className="w-36 xl:w-40">
                 <CustomSelect
                   value={selectedStatus}
                   options={statusOptions}
@@ -219,33 +219,34 @@ function CasosPage() {
               <Button
                 variant={onlyMyCases ? 'primary' : 'outline'}
                 onClick={() => setOnlyMyCases(!onlyMyCases)}
-                className="gap-2"
+                className="gap-1.5 px-3"
                 icon={faFilter}
               >
-                {onlyMyCases ? 'Mis Casos' : 'Todos'}
+                <span className="hidden xl:inline">{onlyMyCases ? 'Mis Casos' : 'Todos'}</span>
+                <span className="xl:hidden">{onlyMyCases ? 'Míos' : 'Todo'}</span>
               </Button>
 
               {/* Botón Registrar Caso */}
               <Button
                 variant="primary"
                 onClick={() => navigate('/registro-caso')}
-                className="gap-2"
+                className="gap-1.5 px-3"
                 icon={faPlus}
               >
-                Registrar Caso
+                <span className="hidden md:inline">Registrar</span>
               </Button>
 
-            </div>
+              {/* Botón Exportar Reporte General */}
+              <button
+                onClick={() => reporteService.downloadReporteGeneral()}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                title="Descargar Reporte General de Casos"
+              >
+                <FontAwesomeIcon icon={faFileExcel} />
+                <span className="hidden xl:inline">Reporte</span>
+              </button>
 
-            {/* Botón Exportar Reporte General */}
-            <button
-              onClick={() => reporteService.downloadReporteGeneral()}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
-              title="Descargar Reporte General de Casos"
-            >
-              <FontAwesomeIcon icon={faFileExcel} />
-              <span className="hidden sm:inline">Reporte General</span>
-            </button>
+            </div>
           </div>
         </div>
 

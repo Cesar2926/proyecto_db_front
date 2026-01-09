@@ -40,7 +40,7 @@ function Header({ title, onMenuClick }: HeaderProps) {
         <img
           src={LogoDerecho}
           alt="Logo Derecho"
-          className="h-4 md:h-8 lg:h-10   xl:h-14 w-auto object-contain cursor-pointer hover:scale-105 hover:opacity-90 transition-all duration-200"
+          className="h-4 md:h-8 lg:h-10 xl:h-14 w-auto object-contain cursor-pointer hover:scale-105 hover:opacity-90 transition-all duration-200"
           onClick={() => navigate('/home')}
         />
       </div>
