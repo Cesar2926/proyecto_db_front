@@ -26,7 +26,7 @@ function MainLayout({ title, children, className = '' }: MainLayoutProps) {
       <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
 
       <main
-        className={`flex-1 overflow-y-auto bg-gray-50 px-6 py-4 md:px-8 md:py-6 lg:px-14 lg:py-8 ${className}`}
+        className={`flex-1 overflow-y-auto bg-background px-6 py-4 md:px-8 md:py-6 lg:px-14 lg:py-8 transition-colors ${className}`}
       >
         {children}
       </main>

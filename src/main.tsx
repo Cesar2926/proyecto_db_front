@@ -3,15 +3,18 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
 import './global.css';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './components/ThemeProvider';
 import AppRoutes from './routes/AppRoutes';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </AuthProvider>
+    <ThemeProvider defaultTheme="light" storageKey="consultorio-theme">
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   </StrictMode>
 );
 

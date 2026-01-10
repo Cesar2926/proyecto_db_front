@@ -47,14 +47,47 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* 🌙 MODO OSCURO */
+  .dark {
+    --background: 0 95% 8%; /* Vinotinto muy oscuro #1a0503 */
+    --foreground: 0 0% 95%; /* Blanco roto */
+
+    --card: 0 0% 98%; /* Vinotinto oscuro para cards */
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 80% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 85% 35%; /* Vinotinto más claro para contraste */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 60% 15%; /* Vinotinto oscuro secundario */
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 50% 20%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 0 70% 18%;
+    --accent-foreground: 0 0% 95%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 50% 25%; /* Bordes vinotinto */
+    --input: 0 60% 20%;
+    --ring: 0 85% 35%;
+
+    color-scheme: dark;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 

@@ -35,7 +35,6 @@ function CasosPage() {
   const [selectedSemestre, setSelectedSemestre] = useState<string>('');
   const [onlyMyCases, setOnlyMyCases] = useState<boolean>(true);
 
-
   const casosPerPage = 12;
   const navigate = useNavigate();
   const username = localStorage.getItem('username') || '';
@@ -50,7 +49,7 @@ function CasosPage() {
   };
 
   const buildAmbitoMap = (ambitos: AmbitoLegal[], map: Record<number, string> = {}) => {
-    ambitos.forEach(ambito => {
+    ambitos.forEach((ambito) => {
       map[ambito.id] = ambito.descripcion;
       if (ambito.children && ambito.children.length > 0) {
         buildAmbitoMap(ambito.children, map);
@@ -65,7 +64,7 @@ function CasosPage() {
       try {
         const [ambitosData, semestresData] = await Promise.all([
           catalogoService.getAmbitosLegales(),
-          catalogoService.getSemestres()
+          catalogoService.getSemestres(),
         ]);
         setAmbitosLegales(buildAmbitoMap(ambitosData));
         setSemestres(semestresData);
@@ -131,7 +130,6 @@ function CasosPage() {
     return 0;
   });
 
-
   const indexOfLastCaso = currentPage * casosPerPage;
   const indexOfFirstCaso = indexOfLastCaso - casosPerPage;
   const casosActuales = casosOrdenados.slice(indexOfFirstCaso, indexOfLastCaso);
@@ -142,47 +140,37 @@ function CasosPage() {
     { value: 'EN TRÁMITE', label: 'En Trámite' },
     { value: 'EN PAUSA', label: 'En Pausa' },
     { value: 'CERRADO', label: 'Cerrados' },
-    { value: 'TODOS', label: 'Todos los Estatus' }
+    { value: 'TODOS', label: 'Todos los Estatus' },
   ];
 
   const sortOptions = [
     { value: 'fecha_desc', label: 'Recientes primero' },
     { value: 'fecha_asc', label: 'Antiguos primero' },
     { value: 'nombre_asc', label: 'Solicitante (A-Z)' },
-    { value: 'nombre_desc', label: 'Solicitante (Z-A)' }
+    { value: 'nombre_desc', label: 'Solicitante (Z-A)' },
   ];
 
   const semesterOptions = [
     { value: '', label: 'Todos los Semestres' },
-    ...semestres.map(s => ({ value: s.termino, label: s.nombre }))
+    ...semestres.map((s) => ({ value: s.termino, label: s.nombre })),
   ];
 
   return (
     <MainLayout title="GESTIÓN DE CASOS">
       <div className="w-full mx-auto">
-
         {/* Controles de Filtros y Búsqueda */}
-        <div className="bg-white p-3 rounded-lg shadow-sm mb-6 border border-gray-200">
+        <div className="bg-card p-3 rounded-lg shadow-sm mb-6 border border-border">
           <div className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
-
             {/* Buscador de Texto */}
             <div className="w-full lg:w-64 xl:w-80">
-              <SearchBar
-                value={searchText}
-                onChange={setSearchText}
-                placeholder="Buscar..."
-              />
+              <SearchBar value={searchText} onChange={setSearchText} placeholder="Buscar..." />
             </div>
 
             {/* Filtros Dropdowns y Toggles */}
             <div className="flex flex-wrap gap-2 items-center justify-end">
-
               {/* View Toggle */}
               <div className="hidden lg:flex">
-                <ViewToggle
-                  viewMode={viewMode}
-                  onToggle={setViewMode}
-                />
+                <ViewToggle viewMode={viewMode} onToggle={setViewMode} />
               </div>
 
               {/* Ordenamiento - CustomSelect */}
@@ -245,18 +233,17 @@ function CasosPage() {
                 <FontAwesomeIcon icon={faFileExcel} />
                 <span className="hidden xl:inline">Reporte</span>
               </button>
-
             </div>
           </div>
         </div>
 
         {/* Resumen de Resultados */}
         {!loading && (
-          <div className="mb-4 text-sm text-gray-600">
+          <div className="mb-4 text-sm text-foreground">
             Mostrando {casosActuales.length} de {casosOrdenados.length} casos encontrados
-            {(selectedStatus !== 'TODOS' || selectedSemestre || onlyMyCases || searchText) &&
-              <span className="ml-2 italic text-gray-500">(filtros activos)</span>
-            }
+            {(selectedStatus !== 'TODOS' || selectedSemestre || onlyMyCases || searchText) && (
+              <span className="ml-2 italic text-muted-foreground">(filtros activos)</span>
+            )}
           </div>
         )}
 
@@ -264,14 +251,16 @@ function CasosPage() {
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-900 mb-4"></div>
-              <p className="text-gray-600">Cargando casos...</p>
+              <p className="text-foreground">Cargando casos...</p>
             </div>
           </div>
         ) : (
           <>
             {casosOrdenados.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-lg border border-dashed border-gray-300">
-                <p className="text-gray-500 text-lg">No se encontraron casos con los criterios seleccionados.</p>
+              <div className="text-center py-16 bg-card rounded-lg border border-dashed border-border">
+                <p className="text-muted-foreground text-lg">
+                  No se encontraron casos con los criterios seleccionados.
+                </p>
                 <Button
                   variant="link"
                   onClick={() => {
@@ -289,21 +278,46 @@ function CasosPage() {
             ) : (
               <>
                 {viewMode === 'list' ? (
-                  <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                  <div className="bg-card shadow overflow-hidden sm:rounded-lg border border-border">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-muted">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caso</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materia</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estatus</th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            Caso
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            Solicitante
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            Materia
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            Fecha
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                          >
+                            Estatus
+                          </th>
                           <th scope="col" className="relative px-6 py-3">
                             <span className="sr-only">Ver</span>
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-card divide-y divide-border">
                         {casosActuales.map((caso) => (
                           <CasoRow
                             key={caso.numCaso}
