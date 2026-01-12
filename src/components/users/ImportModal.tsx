@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import usuarioService from '../../services/usuarioService';
+import { read, utils } from 'xlsx';
 
 interface ImportModalProps {
     isOpen: boolean;
@@ -29,18 +30,40 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
         }
     };
 
+
+
     const parseFile = (file: File) => {
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                setPreviewData(results.data.slice(0, 5)); // Preview first 5 rows
-            },
-            error: (error) => {
-                console.error('Error parsing CSV:', error);
-                setMessage('Error al leer el archivo CSV.');
-            }
-        });
+        if (file.name.endsWith('.csv')) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    setPreviewData(results.data.slice(0, 5));
+                },
+                error: (error) => {
+                    console.error('Error parsing CSV:', error);
+                    setMessage('Error al leer el archivo CSV.');
+                }
+            });
+        } else if (file.name.endsWith('.xlsx')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = e.target?.result;
+                try {
+                    const workbook = read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const json = utils.sheet_to_json(sheet, { header: 0, defval: "" }); // Use header:0 to get array of objects with keys from first row
+                    setPreviewData(json.slice(0, 5));
+                } catch (err) {
+                    console.error('Error parsing Excel:', err);
+                    setMessage('Error al leer el archivo Excel.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            setMessage('Formato de archivo no soportado. Use .csv o .xlsx');
+        }
     };
 
     const handleUpload = async () => {
@@ -97,7 +120,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                                 </h3>
                                 <div className="mt-2">
                                     <p className="text-sm text-gray-500 mb-4">
-                                        Seleccione un archivo CSV para cargar estudiantes. El archivo debe contener las cabeceras: CEDULA, NOMBRE_ESTUDIANTE, ESTU_EMAIL_ADDRESS.
+                                        Seleccione un archivo CSV o Excel (.xlsx) para cargar estudiantes. El archivo debe contener las cabeceras: CEDULA, NOMBRE_ESTUDIANTE, ESTU_EMAIL_ADDRESS.
                                     </p>
 
                                     {!file ? (
@@ -111,7 +134,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                                                 type="file"
                                                 ref={fileInputRef}
                                                 onChange={handleFileChange}
-                                                accept=".csv"
+                                                accept=".csv, .xlsx"
                                                 className="hidden"
                                             />
                                         </div>
